@@ -16,13 +16,12 @@ import random
 
 
 class MCMC_Classical:
-    #class to set up the Quantum-enhanced Markov Chain Monte Carlo,
-    #allowing for Coarse Graining 
+    #class to set up the Markov Chain Monte Carlo,
     #also allows for spectral gap to be calculated
     
     def __init__(self, model, temp, Q= None, A= None, method = "uniform", cluster_size = None):
-        ### I have added some variables here (such as temperature) that I may want to change between itterations
-        # So probably best to add as perameter to "run_MCMC" or "find_spec_gap"
+
+
         self.Q = Q
         self.A =A
         self.model = model

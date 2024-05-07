@@ -5,19 +5,11 @@ import numpy as np
 import itertools
 from typing import Optional
 from tqdm import tqdm
-import matplotlib.pyplot as plt
-from collections import Counter
 from .basic_utils import qsm, states, MCMCChain, MCMCState
 # from .prob_dist import *
 from .energy_models import IsingEnergyFunction, Exact_Sampling
 from .classical_mcmc_routines import test_accept, get_random_state
-from qulacsvis import circuit_drawer
-from scipy.linalg import expm
-from qulacs.gate import DenseMatrix
-from qulacs.gate import X, Y, Z  , Pauli, Identity, merge
-from scipy.sparse.linalg import eigs
 import scipy
-from itertools import combinations
 import random
 from .energy_models import IsingEnergyFunction, Exact_Sampling
 
@@ -30,102 +22,102 @@ from .Circuit_Maker_qulacs import Circuit_Maker
 
 
 class MCMC_qulacs:
-    #class to set up the Quantum-enhanced Markov Chain Monte Carlo,
-    #allowing for Coarse Graining 
-    #also allows for spectral gap to be calculated
+    """
+    Class to set up the Quantum-enhanced Markov Chain Monte Carlo,
+    allowing for Coarse Graining and spectral gap calculation.
     
-    def __init__(self, model, gamma, time, temp, max_qubits = None, CG_sample_number = 1, Q= None, A= None, single_qubit_mixer= True, brute_sample =False, brute_sample_multiplier = 1, naive = False):
-        ### single qubit mixer is ignored in circuit evaluations currently
-        ### I have added some variables here (such as temperature) that I may want to change between iterations
-        # So probably best to add as parameter to "run_MCMC" or "find_spec_gap"
+    """
+    
+    def __init__(self, model, gamma, time, temp, max_qubits=None, CG_sample_number=1, Q=None, A=None, single_qubit_mixer=True, brute_sample=False, brute_sample_multiplier=1, naive=False):
+        """
+        Initializes an instance of the CGQeMCMC class.
+
+        Args:
+            model (Model): The model to be simulated.
+            gamma (float): The gamma parameter.
+            time (float): The time parameter.
+            temp (float): The temperature parameter.
+            max_qubits (int, optional): The maximum number of qubits to use ie. the size of the group in paper. Defaults to None.
+            CG_sample_number (int, optional): The number of CG samples to take ie. the number of groups to evaluate (see paper). Defaults to 1.
+            Q (None, optional): Optional input of Q Matrix (if, for example it has already been computed elsewhere). This is useful if one wishes to cycle through different temperatures without repeatedly finding Q. Defaults to None.
+            A (None, optional): Optional input of A Matrix (if, for example it has already been computed elsewhere). This is useful if one wishes to cycle through different temperatures without repeatedly finding A. Defaults to None.
+            single_qubit_mixer (bool, optional): Flag indicating whether to use single-qubit mixer. Defaults to True.
+            brute_sample (bool, optional): Flag indicating whether to brute sample the Q matrix. Defaults to False.
+            brute_sample_multiplier (int, optional): The multiplier for brute sampling. Defaults to 1. num_samples = ((2**n_spins)**2)*brute_sample_multiplier
+            naive (bool, optional): Flag indicating whether to use naive approach (see paper). Defaults to False.
+        """
         self.Q = Q
         self.brute_sample = brute_sample
         self.brute_sample_multiplier = brute_sample_multiplier
-        self.A =A
+        self.A = A
         self.model = model
         self.gamma = gamma
         self.time = time
         self.temp = temp
-        self.beta = 1/self.temp
+        self.beta = 1 / self.temp
         self.n_spins = model.num_spins
         self.delta_time = 0.8
         self.max_qubits = max_qubits
         self.CG_sample_number = CG_sample_number
         self.naive = naive
-        
-        
-        avg_sample_size = self.n_spins / self.CG_sample_number
-        #print("avg_sample_size: "+str(avg_sample_size))
-        if avg_sample_size == self.max_qubits:
-            self.sample_sizes = np.ones(self.CG_sample_number)*self.max_qubits
-        elif avg_sample_size <= self.max_qubits:
-            self.sample_sizes = np.ones(self.CG_sample_number,dtype = int)*self.max_qubits
-            self.sample_sizes[-1] = self.n_spins-np.sum(self.sample_sizes[:-1])
 
+        avg_sample_size = self.n_spins / self.CG_sample_number
+        if avg_sample_size == self.max_qubits:
+            self.sample_sizes = np.ones(self.CG_sample_number) * self.max_qubits
+        elif avg_sample_size <= self.max_qubits:
+            self.sample_sizes = np.ones(self.CG_sample_number, dtype=int) * self.max_qubits
+            self.sample_sizes[-1] = self.n_spins - np.sum(self.sample_sizes[:-1])
         else:
             self.sample_sizes = [self.max_qubits,]
 
-
-        
         self.single_qubit_mixer = single_qubit_mixer
-
         self.S = None
 
-        
-
-        if self.max_qubits==self.model.num_spins or self.max_qubits  is None:
+        if self.max_qubits == self.model.num_spins or self.max_qubits is None:
             self.course_graining = False
         else:
             self.course_graining = True
 
 
     def find_spec_gap_q(self):
+        """
+        Calculates the spectral gap of the probability matrix Q.
 
-        #check if Q is provided
-        #useful for cycling through Temps
+        Returns:
+            float: The spectral gap of the probability matrix Q.
+        """
+        # Check if Q is provided
+        # Useful for cycling through Temps
         self.model.get_all_energies()
         if self.Q is None:
             self.Q = self.find_prob_matrix()
-            
-        """ 
-        print("S")
-        print(self.S)
-        print("Q")
-        print(self.Q)
-        """
-        #check if A is provided
-        #unsure when this wil be useful
+
+        # Check if A is provided
+        # Unsure when this will be useful
         if self.A is None:
             self.A = self.find_acceptance_matrix()
 
         P = np.multiply(self.Q, self.A)
-        
 
-        #account for rejected swaps to add to s = s' matrix element
+        # Account for rejected swaps to add to s = s' matrix element
         for i in range(P.shape[0]):
-
-            #sum all the rejected ones and add to diagonal elements
-            #s = np.sum(abs(Q[i,:]-P[i,:]))-abs(Q[i,i]-P[i,i])
-            #P[i,i] +=s
             s = np.sum(P[i, :])
+            P[i, i] = 1 - s
 
-            P[i, i] =1- s
-
-
-        #normalise by row
+        # Normalize by row
         row_sums = P.sum(axis=1)
         P = P / row_sums[:, np.newaxis]
 
-        #fine eigenvalues
+        # Find eigenvalues
         e_vals, e_vecs = scipy.linalg.eig(P)
         e_vals = np.flip(np.sort(abs(e_vals)))
-        
-        #find spectral gap
+
+        # Find spectral gap
         delta = e_vals[1]
         delta = 1 - delta
-        
+
         self.delta = delta
-        
+
         return delta
 
 
@@ -135,8 +127,24 @@ class MCMC_qulacs:
         name:str = "quMCMC",
         verbose:bool = False):
         """
-        Last 'return_last_n_states' elements of states so collected (default value=500). one can then deduce the distribution from it!
+        Runs the quantum MCMC algorithm for a specified number of hops.
+
+        Args:
+            n_hops (int): The number of hops to perform in the MCMC algorithm.
+            initial_state (Optional[str], optional): The initial state for the MCMC algorithm. If not provided, a random state will be generated. Defaults to None.
+            name (str, optional): The name of the MCMC chain. Defaults to "quMCMC".
+            verbose (bool, optional): Whether to print verbose output during the algorithm execution. Defaults to False.
+
+        Returns:
+            MCMCChain: The MCMC chain containing the states collected during the algorithm execution.
         """
+        # Rest of the code...
+    def run(self,
+        n_hops: int,
+        initial_state: Optional[str] = None,
+        name:str = "quMCMC",
+        verbose:bool = False):
+
 
 
 
@@ -188,26 +196,35 @@ class MCMC_qulacs:
 
         return mcmc_chain
     
-    def get_s_prime(self,current_state, g, t):
-        
+    def get_s_prime(self, current_state, g, t):
+        """
+        Returns the next state s_prime based on the current state, g, and t.
+
+        Parameters:
+        current_state (str): The current state.
+        g (float or tuple): The value of g. If it's a tuple, a random value is generated between the minimum and maximum values of the tuple.
+        t (int or tuple): The value of t. If it's a tuple, a random integer is generated between the minimum and maximum values of the tuple.
+
+        Returns:
+        str: The next state s_prime.
+        """
         if g is None:
             if type(self.gamma) is tuple:
-                g = np.round(np.random.uniform(low= min(self.gamma), high = max(self.gamma),size = 1), decimals=6)
+                g = np.round(np.random.uniform(low=min(self.gamma), high=max(self.gamma), size=1), decimals=6)
             else:
                 g = self.gamma
         if t is None:
             if type(self.time) is tuple:
-                t = np.random.randint(low= np.min(self.time), high = np.max(self.time),size = 1)
+                t = np.random.randint(low=np.min(self.time), high=np.max(self.time), size=1)
             else:
                 t = self.time
 
-        
         if not self.course_graining:
             CM = Circuit_Maker(self.model, g, t, self.single_qubit_mixer)
             try:
                 s_prime = CM.get_state_obtained_binary(current_state.bitstring)
             except:
-                s_prime = CM.get_state_obtained_binary(current_state) 
+                s_prime = CM.get_state_obtained_binary(current_state)
         else:
             try:
                 s_prime = self.sample_transitions_CG_binary(current_state.bitstring, self.max_qubits, g, t)
@@ -218,18 +235,20 @@ class MCMC_qulacs:
 
         
     def find_prob_matrix(self):
-        
+        """
+        Calculates the probability matrix Q based on the given parameters.
+
+        Returns:
+            Q (numpy.ndarray): The probability matrix.
+        """
         if self.S is None:
             self.S = [''.join(i) for i in itertools.product('01', repeat=self.n_spins)]
-        #If time and gamma are single
+        
         if type(self.time) is int and type(self.gamma) is float:
-            
-            #print("If time and gamma are single")
+            # If time and gamma are single
             if self.brute_sample:
-                
-                #If  brute sample
+                # If brute sample
                 print("brute sample")
-                
                 Q = np.zeros((2 ** self.n_spins, 2 ** self.n_spins))
                 for m in range(2**self.n_spins*self.brute_sample_multiplier):
                     for i, s in enumerate(self.S):
@@ -257,12 +276,12 @@ class MCMC_qulacs:
 
                 else:
                     #If coarse grained
-
+                    
                     Q = np.zeros((2 ** self.n_spins, 2 ** self.n_spins))
                     all_combs = self.generate_combinations(self.n_spins, self.max_qubits)
                     for k, s in enumerate(self.S):
                         for comb in all_combs:
-                            print("sample_transitions_CG_probs_row doesn't really work with input  choices yet.")
+                            print("sample_transitions_CG_probs_row doesn't work with input choices.")
                             S_, probs = self.sample_transitions_CG_probs_row(s, self.max_qubits, self.gamma, self.time, comb)
                             
                             S_ = [int(''.join(map(str, row)), 2) for row in S_]
@@ -282,14 +301,9 @@ class MCMC_qulacs:
             #If time and gamma are ranges
             
             if self.brute_sample:
-                
-                #If  brute sample
-                #ie scaling:    #  linearly with Coarse graining    #  linearly with time range      #linearly with gamma range             
-                #n_ty_samples =int(abs(self.n_spins- self.max_qubits+1)*np.max([1,(max(self.time) - min(self.time))])*np.max([1,(max(self.gamma*5) - min(self.gamma*5))]))
-                #n_ty_samples =int(np.max([1,(max(self.time) - min(self.time))])*np.max([1,(max(self.gamma*5) - min(self.gamma*5))])*self.brute_sample_multiplier)
+
                 n_ty_samples =int(2**self.n_spins*self.brute_sample_multiplier)
                 times = np.random.randint(min(self.time), max(self.time),size= (n_ty_samples))
-                print(n_ty_samples)
                 gammas = np.random.randint(int(min(self.gamma)*100),int(max(self.gamma)*100),size= (n_ty_samples))/100
                 
 
@@ -304,7 +318,7 @@ class MCMC_qulacs:
                         if int(binary,2)<len(Q):
                             Q[i,int(binary,2)] +=1
                         else:
-                            print("It happened again!")
+                            print("Weird error happened again!")
                 row_sums = Q.sum(axis=1)
                 row_sums[row_sums == 0] = 0.0000000001
                 Q = Q / row_sums[:, np.newaxis]
@@ -312,10 +326,6 @@ class MCMC_qulacs:
                     
             else:
                 if self.max_qubits == None or self.max_qubits == self.n_spins:
-                    #print("this method randomly samples from each of the time and gamma lists")
-                    #just this value for now... it's a little rough...
-                    #n_ty_samples = abs(self.n_spins- self.max_qubits+1)*(max(self.time) - min(self.time))
-
 
                     #ie scaling:          # linearly with time range         # linearly with gamma range             
                     n_ty_samples =int(np.max([1,(max(self.time) - min(self.time))])*np.max([1,(max(self.gamma*5) - min(self.gamma*5))])*self.brute_sample_multiplier)
@@ -346,26 +356,14 @@ class MCMC_qulacs:
                         Q_ +=Q
 
                 else:
-                    #print("finally hereeeeee")
-                    # just this value for now... it's a little rough...
-                    
-                    #n_ty_samples = abs(self.n_spins- self.max_qubits+1)*(max(self.time) - min(self.time))
-                    #n_ty_samples = (2**n_spins-2**(max_qubits+1))*(max(time) - min(time))
-                    #print(str(n_ty_samples)+" n_ty_samples!")
-                    #model.model_summary()
-                    #plt.show()
 
-                    
                     #ie scaling:    #  linearly with Coarse graining       # linearly with time range         # linearly with gamma range             
                     n_ty_samples =int(abs(self.n_spins- self.max_qubits+1)*(np.max([1,(max(self.time) - min(self.time))])*np.max([1,(max(self.gamma*5) - min(self.gamma*5))]))*self.brute_sample_multiplier)
                     
                     times = np.random.randint(min(self.time), max(self.time),size= (n_ty_samples))
                     gammas = np.random.randint(int(min(self.gamma)*100),int(max(self.gamma)*100),size= (n_ty_samples))/100
-                    
-                    # print(times)
-                    # print(gammas)
+
                     Q_ = np.zeros((2 ** self.n_spins, 2 ** self.n_spins))
-                    #print(Q_)
 
                     for i in range(n_ty_samples):
                         t_ = times[i]
@@ -390,13 +388,19 @@ class MCMC_qulacs:
 
         elif type(self.time) is tuple or type(self.gamma) is tuple:
             print("I havent coded time or gamma being varied, only both")
-            print("If you get this message you can put your time or gamma in a tuple with min  = max, and it should work but I havent yet checked")
+            print("If you get this message you can put your time or gamma in a tuple with min  =  max, and it should work but I haven't yet checked")
         else:
             print("time or gamma is of the wrong format/a format I haven't coded yet")
 
         return Q
 
-    def find_acceptance_matrix(self)-> np.ndarray:
+    def find_acceptance_matrix(self) -> np.ndarray:
+        """
+        Calculates and returns the acceptance matrix for the CGQeMCMC algorithm.
+
+        Returns:
+            np.ndarray: The acceptance matrix.
+        """
         if self.S is None:
             self.S = [''.join(i) for i in itertools.product('01', repeat=self.n_spins)]
 
@@ -404,112 +408,56 @@ class MCMC_qulacs:
         for i in range(2**self.n_spins):
             energy_s = self.model.get_energy(self.S[i])  #
             mu.append(energy_s)  # E(s')-E(s)
-            #exp_factor = np.exp(-delta_energy / temperature)
         mu = np.array(mu)
         E = self.vectorized_find_E(mu)
-        np.fill_diagonal(E,0)
+        np.fill_diagonal(E, 0)
         return E
 
 
-    """
-    # the following works, but has been upgraded elsewhere under the same name to allow for multiple CG samples to be taken
 
-    def sample_transitions_CG_probs_row(self,s, n, gamma, time,choices = None):
-        # find what state s' you obtain given s
-        #is a list of all s and all s' (given the spins that aren't specified)
-        current_state = s
-        n_change_spins = n
-
-
-        # decide which indexes to use
-        full_index = np.arange(0, self.model.num_spins)
-
-        #current bitstring as an array
-        BIT_STRING_ARR = np.fromstring(current_state, 'u1') - ord('0')
-
-        #The choice of spins that will be changed (index
-        if choices is None:
-            #random if not given
-            choices = np.sort(self.find_subset(self.n_spins, n_change_spins))
-        
-        
-        
-
-        #current state of bitdrings to e changed
-        change_bitstring = BIT_STRING_ARR[choices]
-
-
-
-        mask = np.isin(full_index, choices, invert=True)
-
-        #spins that wont be changes
-        non_choices = full_index[mask]
-
-
-
-        #defines the partial model post course grain
-        partial_J = np.delete(self.model.J, non_choices, axis=0)
-        partial_J = np.delete(partial_J, non_choices, axis=1)
-        partial_h = np.delete(self.model.h, non_choices, axis=0)
-
-        # define new model post course grain
-        partial_model = IsingEnergyFunction(partial_J, partial_h, name="partial model")
-        #partial_model.model_summary()
-        #plt.show()
-        #print(change_bitstring)
-        c_btstring = ''.join(map(str, change_bitstring))
-
-
-        CM = Circuit_Maker(partial_model,gamma,time, self.single_qubit_mixer)
-        probs = CM.get_state_obtained_probs(c_btstring)
-
-
-        S_ = [''.join(i) for i in itertools.product('01', repeat=partial_model.num_spins)]
-        #print("S_")
-        S_ = np.array([[int(bit) for bit in bitstring] for bitstring in S_])
-
-
-        #put in all the original states for unchanged spins
-        S_final = np.zeros((len(probs),self.n_spins), dtype = int)
-        for count, nc in enumerate(non_choices):
-            S_final[:,nc] = BIT_STRING_ARR[nc]
-
-        #put in the possible states for the changing spins in the correct order
-        for count_1, s_ in enumerate(S_):
-            for count_2, c in enumerate(choices):
-                S_final[count_1,c] = s_[count_2]
-
-        return S_final, probs"""
         
     
-    def sample_transitions_CG_probs_row(self ,s, n, gamma, time, choices = None):
-        #now takes multiple CG samples
-        # find what state s' you obtain given s
-        #is a list of all s and all s' (given the spins that aren't specified)
+    def sample_transitions_CG_probs_row(self, s, n, gamma, time, choices=None):
+        """
+        Sample transitions and calculate probabilities for a given row of the CGQeMCMC matrix.
+
+        Args:
+            s (str): The current state.
+            n (int): The number of spins to change.
+            gamma (float): The gamma parameter.
+            time (float): The time parameter.
+            choices (ndarray, optional): The indices of spins to change. If not provided, random spins will be chosen.
+
+        Returns:
+            tuple: A tuple containing the final states and their corresponding probabilities.
+
+        Raises:
+            None
+
+        """
+
         current_state = s
         n_change_spins = n
-
 
         # decide which indexes to use
         full_index = np.arange(0, self.model.num_spins)
 
-        #current bitstring as an array
+        # current bitstring as an array
         BIT_STRING_ARR = np.fromstring(current_state, 'u1') - ord('0')
 
-        #The choice of spins that will be changed (index
+        # The choice of spins that will be changed (index
         if choices is None:
-            #random if not given
+            # random if not given
             choices = np.sort(self.find_subset(self.n_spins, n_change_spins))
-        
+
         all_choices = []
-        #DO CG_sample_number number of quantum evaluations of max_qubits number of spins
+
+        # DO CG_sample_number number of quantum evaluations of max_qubits number of spins
         if self.CG_sample_number > 1:
             print("Optimised partial model doesn't work for chunking")
             print("doing non optimised (naive)")
-        for i in range(0,self.CG_sample_number):
-            
-            #print(i)
-            #find the next selection of choices to evaluate
+
+        for i in range(0, self.CG_sample_number):
             choices_i = []
             for i_c in choices:
                 if i == 0:
@@ -517,243 +465,173 @@ class MCMC_qulacs:
                 else:
                     nxt = i_c + self.max_qubits
                 if nxt >= self.n_spins:
-                    nxt = nxt-self.n_spins
+                    nxt = nxt - self.n_spins
                 choices_i.append(nxt)
-                
+
             choices = np.sort(choices_i)
-            
+
             change_bitstring = BIT_STRING_ARR[choices]
-            
+
             if self.CG_sample_number > 1 or self.naive == True:
                 partial_model = self.define_partial_model(choices, full_index)
             else:
                 partial_model = self.define_accurate_partial_model(choices, full_index, current_state)
 
-            
-            
             c_btstring = ''.join(map(str, change_bitstring))
-            
-            #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            #partial_E = partial_model.get_energy(c_btstring)
-            #print("Partial_E: "+str(partial_E))
-            
 
-            CM = Circuit_Maker(partial_model,gamma,time, self.single_qubit_mixer)
+            CM = Circuit_Maker(partial_model, gamma, time, self.single_qubit_mixer)
             probs = CM.get_state_obtained_probs(c_btstring)
 
-
             S_ = [''.join(i) for i in itertools.product('01', repeat=partial_model.num_spins)]
-            #print("S_")
             S_ = np.array([[int(bit) for bit in bitstring] for bitstring in S_])
 
-        
-            # Do the same with probs array
             if i == 0:
-                
                 probs_final = probs
-                S_final = np.zeros((len(probs),self.n_spins), dtype = int)
-                #put in the possible states for the changing spins in the correct order
+                S_final = np.zeros((len(probs), self.n_spins), dtype=int)
                 for count_1, s_ in enumerate(S_):
                     for count_2, c in enumerate(choices):
-                        S_final[count_1,c] = s_[count_2]
+                        S_final[count_1, c] = s_[count_2]
             else:
-
-                S_final = np.tile(S_final,(2**len(choices),1))
-                probs_final = np.tile(probs_final,(2**len(choices)))
+                S_final = np.tile(S_final, (2 ** len(choices), 1))
+                probs_final = np.tile(probs_final, (2 ** len(choices)))
                 for count_1, s_ in enumerate(S_):
-                    S_final[(count_1*2**self.CG_sample_number):(count_1*2**self.CG_sample_number+2**self.CG_sample_number),choices] = s_
-                    probs_final[(count_1*2**self.CG_sample_number):(count_1*2**self.CG_sample_number+2**self.CG_sample_number)] *= probs[count_1]
+                    S_final[(count_1 * 2 ** self.CG_sample_number):(count_1 * 2 ** self.CG_sample_number + 2 ** self.CG_sample_number), choices] = s_
+                    probs_final[(count_1 * 2 ** self.CG_sample_number):(count_1 * 2 ** self.CG_sample_number + 2 ** self.CG_sample_number)] *= probs[count_1]
             all_choices.append(choices)
-                
-                
-                
 
-        #put in all the original states for unchanged spins
-        possible_choices = np.arange(0,self.n_spins)
-        global_non_choices = possible_choices[np.invert(np.isin(possible_choices,all_choices))]
+        possible_choices = np.arange(0, self.n_spins)
+        global_non_choices = possible_choices[np.invert(np.isin(possible_choices, all_choices))]
 
         for count, nc in enumerate(global_non_choices):
-            S_final[:,nc] = BIT_STRING_ARR[nc]
-        
+            S_final[:, nc] = BIT_STRING_ARR[nc]
+
         return S_final, probs_final
     
     
-    def define_partial_model(self,choices,full_index):
-        #current state of bitstrings to be changed
+    def define_partial_model(self, choices, full_index):
+        """
+        Defines a partial model based on the given choices and full index.
+        This is the naive approach to defining a partial model as explained in the paper.
         
+        Parameters:
+        choices (list): A list of indices representing the spins to be changed.
+        full_index (list): A list of all indices representing the spins in the full model.
 
+        Returns:
+        partial_model (IsingEnergyFunction): A partial model post coarse-graining.
+
+        """
+        # current state of bitstrings to be changed
         mask = np.isin(full_index, choices, invert=True)
 
-        #spins that wont be changes
+        # spins that won't be changed
         non_choices = full_index[mask]
 
-        #defines the partial model post course grain
+        # defines the partial model post coarse-graining
         partial_J = np.delete(self.model.J, non_choices, axis=0)
         partial_J = np.delete(partial_J, non_choices, axis=1)
         partial_h = np.delete(self.model.h, non_choices, axis=0)
 
-        # define new model post course grain
+        # define new model post coarse-graining
         partial_model = IsingEnergyFunction(partial_J, partial_h, name="partial model")
-        
 
         return partial_model
     
-    def define_accurate_partial_model(self,choices,full_index,current_state):
-        #current state of bitstrings to be changed
-        
-        
-        #mask = np.isin(full_index, choices, invert=True)
-        mask = np.delete(np.copy(full_index),choices)
-        #spins that wont be changed
+    def define_accurate_partial_model(self, choices, full_index, current_state):
+        """
+        Defines a partial model based on the given choices, full index, and current state.
+        This is the improved approach as defined in the paper.
+        Args:
+            choices (list): List of indices representing the spins to be changed.
+            full_index (ndarray): Array of all spin indices.
+            current_state (str): Current state of bitstrings.
+
+        Returns:
+            partial_model (IsingEnergyFunction): Partial model post coarse-graining.
+
+        Raises:
+            None
+
+        """
+
+        # current state of bitstrings to be changed
+
+        # mask = np.isin(full_index, choices, invert=True)
+        mask = np.delete(np.copy(full_index), choices)
+        # spins that won't be changed
         non_choices = full_index[mask]
 
-
-        #defines the partial model post course grain
+        # defines the partial model post coarse-graining
         partial_J = np.delete(self.model.J, non_choices, axis=0)
         partial_J = np.delete(partial_J, non_choices, axis=1)
         partial_h = np.delete(self.model.h, non_choices, axis=0)
 
-        #print("current_state: "+str(current_state))
-        #print("choices: "+str(choices))
-
-        #print("partial_h: "+str(partial_h))
-
-        #cnt is just to make undexing of choices easier
+        # cnt is just to make indexing of choices easier
         cnt = 0
 
-        #This is incredibly inefficient
-        """
-        for n in range(self.n_spins):
-            if n in choices:
-                for m in range(self.n_spins):
-                    if m not in choices:
-                    #Both J and h components of the removed spins contribute to the field
-                        if int(current_state[m]) == 0:
-                            partial_h[cnt] += (-1)*(self.model.J[n,m])
-                        elif int(current_state[m]) == 1:
-                            partial_h[cnt] += (1)*(self.model.J[n,m])#self.model.h[m]+
-                        else:
-                            print("something has gone wrong here")
-                    # The partial_J is unchanged as the removes s is constant so the J sum in the hamiltonian (ie the matrix element (n,m)) 
-                    # only has one variable, which is the value of the non-removed spin.
-                    # This means it can be applied to the field, which is cheaper.
-                cnt +=1
-        """        
         for n in choices:
             for m in non_choices:
-                #Both J and h components of the removed spins contribute to the field
-                #print(current_state[m])
-                #print(type(current_state[m]))
+                # Both J and h components of the removed spins contribute to the field
+
                 if int(current_state[m]) == 0:
-                    partial_h[cnt] += (-1)*(self.model.J[n,m])
+                    partial_h[cnt] += (-1) * (self.model.J[n, m])
                 elif int(current_state[m]) == 1:
-                    partial_h[cnt] += (1)*(self.model.J[n,m])#self.model.h[m]+
+                    partial_h[cnt] += (1) * (self.model.J[n, m])  # self.model.h[m]+
                 else:
                     print("something has gone wrong here")
-                # The partial_J is unchanged as the removes s is constant so the J sum in the hamiltonian (ie the matrix element (n,m)) 
+                # The partial_J is unchanged as the removed spin is constant so the J sum in the Hamiltonian (i.e., the matrix element (n,m))
                 # only has one variable, which is the value of the non-removed spin.
                 # This means it can be applied to the field, which is cheaper.
-            cnt +=1
+            cnt += 1
 
-        # define new model post course grain
+        # define new model post coarse-graining
         partial_model = IsingEnergyFunction(partial_J, partial_h, name="partial model")
-
 
         return partial_model
     
     
-    """
-    
-    # the following works, but has been upgraded elsewhere under the same name to allow for multiple CG samples on one lattice update
-    def sample_transitions_CG_binary(self,s , n, gamma, time):
-        # find what state s' you obtain given s
-        #is a list of all s and all s' (given the spins that aren't specified)
-        current_state = s
-        n_change_spins = n
 
-        
-        # decide which indexes to use
-        full_index = np.arange(0, self.n_spins)
+    def sample_transitions_CG_binary(self, s, n, gamma, time):
+        """
+        Perform binary transitions sampling using the CGQeMCMC algorithm. This is used in "brute force" sampling of Q or in actual CGQeMCMC.
 
-        #current bitstring as an array
-        BIT_STRING_ARR = np.fromstring(current_state, 'u1') - ord('0')
+        Args:
+            s (str): The initial state of the system.
+            n (int): The number of spins to be changed in each transition.
+            gamma (float): The parameter for the CGQeMCMC algorithm.
+            time (float): The time parameter for the CGQeMCMC algorithm.
 
-        #The choice of spins that will be changed (index
-        choices = np.sort(self.find_subset(self.n_spins, n_change_spins))
-        
+        Returns:
+            str: The final state of the system after performing the transitions.
 
-        
-        #current state of bitsrings to e changed
-        change_bitstring = BIT_STRING_ARR[choices]
+        Raises:
+            None
 
-
-
-        mask = np.isin(full_index, choices, invert=True)
-
-        #spins that wont be changes
-        non_choices = full_index[mask]
-
-
-
-        #defines the partial model post course grain
-        partial_J = np.delete(self.model.J, non_choices, axis=0)
-        partial_J = np.delete(partial_J, non_choices, axis=1)
-        partial_h = np.delete(self.model.h, non_choices, axis=0)
-
-        # define new model post course grain
-        partial_model = IsingEnergyFunction(partial_J, partial_h, name="partial model")
-        #partial_model.model_summary()
-        #plt.show()
-        #print(change_bitstring)
-        c_btstring = ''.join(map(str, change_bitstring))
-        CM = Circuit_Maker(partial_model,gamma,time, self.single_qubit_mixer)
-        binary = CM.get_state_obtained_binary(c_btstring)
-        
-
-        #put in all the original states for unchanged spins       
-        S_final = np.zeros(self.n_spins, dtype = int)
-        for count, nc in enumerate(non_choices):
-            S_final[nc] = BIT_STRING_ARR[nc]
-
-        #put in the possible states for the changing spins in the correct order
-        for count, c in enumerate(choices):
-            S_final[c] = binary[count]
-        return ''.join(map(str, S_final))"""
-
-
-    
-
-
-
-    def sample_transitions_CG_binary(self,s , n, gamma, time):
+        """
         # same as sample_transitions_CG_binary_ but can use multiple sections of the lattice
         # find what state s' you obtain given s
         # is a list of all s and all s' (given the spins that aren't specified)
         current_state = s
         n_change_spins = n
 
-        
         # decide which indexes to use
         full_index = np.arange(0, self.n_spins)
 
-        #current bitstring as an array
+        # current bitstring as an array
         BIT_STRING_ARR = np.fromstring(current_state, 'u1') - ord('0')
 
-        #The choice of spins that will be changed (index
+        # The choice of spins that will be changed (index
         orig_choices = self.find_subset(self.n_spins, n_change_spins)
         choices = np.sort(orig_choices)
-        
 
-        
+        # DO CG_sample_number number of quantum evaluations of max_qubits number of spins
+        for i in range(0, self.CG_sample_number):
 
-        #DO CG_sample_number number of quantum evaluations of max_qubits number of spins
-        for i in range(0,self.CG_sample_number):
-            
-            #find the next selection of choices to evaluate
-            
-            #if normal number of choices
+            # find the next selection of choices to evaluate
+
+            # if normal number of choices
             if self.sample_sizes[i] == self.max_qubits:
-                
+
                 choices_i = []
                 for i_c in choices:
                     if i == 0:
@@ -761,78 +639,52 @@ class MCMC_qulacs:
                     else:
                         nxt = i_c + self.max_qubits
                     if nxt >= self.n_spins:
-                        nxt = nxt-self.n_spins
+                        nxt = nxt - self.n_spins
                     choices_i.append(nxt)
-                    
-            #if not last
-            # Unsure what this did.. have taken it out
-            
-            #elif i != self.CG_sample_number-1:
-            #    choices_i = []
-            #    print("hiii")
-            #    for cnt, i_c in enumerate(choices):
-            #         if i == 0:
-            #             nxt = i_c
-            #        else:
-            #            nxt = i_c + self.max_qubits
-            #        if nxt >= self.n_spins:
-            #            nxt = nxt-self.n_spins
-            #        choices_i.append(nxt)
-            
-            #if last iter (not normal numbe rof choices)
-            elif i == self.CG_sample_number-1:
+
+            elif i == self.CG_sample_number - 1:
                 choices_i = []
-                for l in range(1,self.sample_sizes[-1]+1):
-                    nxt = orig_choices[0]-l
+                for l in range(1, self.sample_sizes[-1] + 1):
+                    nxt = orig_choices[0] - l
                     if nxt < 0:
-                        nxt = nxt+self.n_spins
+                        nxt = nxt + self.n_spins
                     choices_i.append(nxt)
             else:
-                print("ahh this is why")
-                
-            
+                print("a weird error has occured in sample_transitions_CG_binary")
+
             choices = np.sort(choices_i)
 
-            
-            #current state of bitsrings to be changed
+            # current state of bitsrings to be changed
             change_bitstring = BIT_STRING_ARR[choices]
-            #mask = np.isin(full_index, choices, invert=True)
-            mask = np.delete(np.copy(full_index),choices) #much quicker than isin, and full index is only n long so space wise it shouldnt be an issue
-            #spins that wont be changes
+            # mask = np.isin(full_index, choices, invert=True)
+            mask = np.delete(np.copy(full_index), choices)  # much quicker than isin, and full index is only n long so space wise it shouldnt be an issue
+            # spins that wont be changes
             non_choices = full_index[mask]
 
-            
             partial_model = self.define_accurate_partial_model(choices, full_index, current_state)
 
-
             c_btstring = ''.join(map(str, change_bitstring))
-            CM = Circuit_Maker(partial_model,gamma,time, self.single_qubit_mixer)
+            CM = Circuit_Maker(partial_model, gamma, time, self.single_qubit_mixer)
             binary = CM.get_state_obtained_binary(c_btstring)
-            
-            if i ==0:
-                #put in all the original states for unchanged spins       
-                S_final = np.zeros(self.n_spins, dtype = int)
+
+            if i == 0:
+                # put in all the original states for unchanged spins
+                S_final = np.zeros(self.n_spins, dtype=int)
                 for count, nc in enumerate(non_choices):
                     S_final[nc] = BIT_STRING_ARR[nc]
-                    
+
             else:
-                #put in states from last iteration
-                S_final_ = np.zeros(self.n_spins, dtype = int)
+                # put in states from last iteration
+                S_final_ = np.zeros(self.n_spins, dtype=int)
                 for count, nc in enumerate(non_choices):
                     S_final_[nc] = S_final[nc]
                 S_final = S_final_
 
-            #put in the possible states for the changing spins in the correct order
+            # put in the possible states for the changing spins in the correct order
             for count, c in enumerate(choices):
                 S_final[c] = binary[count]
             current_state = S_final
-            
 
-
-        
-        #print("ham dist")
-        #print(BIT_STRING_ARR-S_final)
-        #print(np.sum(abs(BIT_STRING_ARR-S_final)))
         return ''.join(map(str, S_final))
 
 
@@ -869,6 +721,7 @@ class MCMC_qulacs:
         """
         Accepts the state "sprime" with probability A ( i.e. min(1,exp(-(E(s')-E(s))/ temp) )
         and s_init with probability 1-A.
+        
         """
         delta_energy = energy_sprime - energy_s  # E(s')-E(s)
         exp_factor = np.exp(-delta_energy / self.temp)
