@@ -7,7 +7,7 @@ sys.path.insert(0, root_dir)
 from cgqemcmc.basic_utils import *
 import pickle
 import time as tme
-import os
+import os 
 from cgqemcmc.qulacs_CGQeMCMC import MCMC_qulacs
 import joblib
 

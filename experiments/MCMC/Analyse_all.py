@@ -18,18 +18,14 @@ import os
 
 
 
-n_spins = 9
+n_spins = 9 # size of system
+m_q = np.sqrt(n_spins) # number of groups is assumed to be sqrt(n)
+temp = float(1) # temperature of system to analyse
 
-temp = float(1)
 
-
-plot_first = True
-plot_individuals = False
-non_multi_samp =  True
+plot_first = True #whether to plot energy graph or not
+plot_individuals = False #whether to plot individual MC chains in energy plot
     
-#ie what model index to look at
-exp_number = 0
-all_same_model = True
 
 
 
@@ -375,7 +371,7 @@ l_results_dir = list(results_dir)
 
 
 Q_results_dir = ''.join(l_results_dir)
-m_q = np.sqrt(n_spins)
+
 
 
 
@@ -499,18 +495,9 @@ for i, label in enumerate(labels):
         
 
 ax[0].legend(unique_handles, unique_labels)
-#ax[0].legend().remove()
-#ax[1].legend().remove()
-#fig.legend().remove()
 
 if plot_first:
-    #ax[0].text(10,-2,"T = "+str(temp))
-    #fig.delaxes(ax[1])
-    #ax[0].set_position([0.1, 0.1, 0.8, 0.8])
-    #ax[0].set_title("Thermalisation of MCMC for "+str(n_spins)+" spins")
-    #ax[0].set_xlabel("Steps")
-    #ax[0].set_ylabel("Energy")
-    
+
     fig.suptitle("Thermalisation of MCMC for "+str(n_spins)+" spins")
     fig.supxlabel("Steps")
     fig.supylabel("Energy")
@@ -714,9 +701,9 @@ u_distances = [abs(val - exact_mag) for val in u_mags_mean]  # Absolute differen
 l_distances = [abs(val - exact_mag) for val in l_mags_mean]  # Absolute difference from the final value
 q_distances = [abs(val - exact_mag) for val in q_mags_mean]  # Absolute difference from the final value
 
-axs[1].plot(u_full_hops, u_distances, color="orange", label = "uniform")
-axs[1].plot(l_full_hops, l_distances, color="green", label = "local")
-axs[1].plot(Q_full_hops, q_distances, color="red", label = "quantum")
+axs[1].plot(u_full_hops, u_distances, color="orange")
+axs[1].plot(l_full_hops, l_distances, color="green")
+axs[1].plot(Q_full_hops, q_distances, color="red")
 
 
 
