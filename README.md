@@ -13,20 +13,24 @@ An example experiment is given in the folder titled "MCMC", where a Markov Chain
 
 ### To recreate the results:
 - Delete the result files in results/1_0/
-- From terminal, run the python file: "Run_class.py" which will initalise Markov chain. Command line argument required are:
+- From terminal, run the python file: "Run_class.py" which will initalise classical Markov chains. Command line argument required are:
   - n_spins: (int) Number of spins in system. (9 in given example) 
   - temp: (float) Temperature of system. (1 in given example) 
   - reps: (int) Number of markov chains to condider. (10 in given example)
   - n_hops: (int) Length of chains to consider. (10000 in given example)
 
+- From terminal, run the python file: "Run_quant.py" which will initalise Quantum Markov chains Markov chain. Command line arguments required are:
+  - n_spins: (int) As above
+  - temp: (float)  As above
+  - reps: (int) As above
+  - n_hops: (int) As above
+  - mult_samp: (bool) Whether to use multiple groups in Coarse graining (True in given example)
+  - group_size: (int) Size of group to use in coarse graining (3 in given example)
 
-Please bear in mind this is a code built for experimentation and does not have sophistocated error-catching capabilities.
+Please bear in mind this is a code built for experimentation and does not have sophistocated error-catching capabilities. Likewise the example code analysis code is written for the specific inputs given above.
 
 
-
-
-
-The quantum simulator primarily used is Qulacs.
+The quantum simulator used is Qulacs.
 
 
 ## References
