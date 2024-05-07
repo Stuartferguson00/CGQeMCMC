@@ -1,9 +1,32 @@
 Code used in the paper "Quantum-enhanced Markov Chain Monte Carlo for systems larger than your Quantum Computer"
 
-It builds upon the numerics in Layden's work on the Quantum enhanced Markov Chain Monte Carlo (QeMCMC): https://www.nature.com/articles/s41586-023-06095-4, with the main contribution focussed on applying a "coarse graining" to the quantum proposal in order to analyse the possibility of some dampened quantum speedup remaining while the number of required qubits is lowered. The code is built upon another repository: https://github.com/pafloxy/quMCMC.
+It builds upon the numerics in Layden's work on the Quantum enhanced Markov Chain Monte Carlo (QeMCMC): https://www.nature.com/articles/s41586-023-06095-4, with the main contribution focussed on applying a "coarse graining" to the quantum proposal in order to analyse the possibility of some dampened quantum speedup remaining while the number of required qubits is lowered. 
 
 ## Code details
+The code is essentially built upon another repository: https://github.com/pafloxy/quMCMC, with changes made to allow for different Coarse graining of the Ising model.
 
+
+An example experiment is given in the folder titled "MCMC", where a Markov Chain Monte Carlo algorithm is run for an example 9 spin instance. Classical "Uniform" and "local" update proposals are compared with a CGQeMCMC implimentationusing only 3 simulated qubits. Even though the number of qubits is quadratically reduced from the number requred by the original algorithm of Layden et al, we still see quantum speedup. These results can be viewed by running Analyse_all.py.
+
+
+
+
+### To recreate the results:
+- Delete the result files in results/1_0/
+- From terminal, run the python file: "Run_class.py" which will initalise Markov chain. Command line argument required are:
+  - n_spins: (int) Number of spins in system. (9 in given example) 
+  - temp: (float) Temperature of system. (1 in given example) 
+  - reps: (int) Number of markov chains to condider. (10 in given example)
+  - n_hops: (int) Length of chains to consider. (10000 in given example)
+
+
+Please bear in mind this is a code built for experimentation and does not have sophistocated error-catching capabilities.
+
+
+
+
+
+The quantum simulator primarily used is Qulacs.
 
 
 ## References
