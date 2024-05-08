@@ -1,4 +1,4 @@
-Code used in the paper "Quantum-enhanced Markov Chain Monte Carlo for systems larger than your Quantum Computer"
+Code used in the paper "Quantum-enhanced Markov Chain Monte Carlo for systems larger than your Quantum Computer": https://arxiv.org/abs/2405.04247
 
 It builds upon the numerics in Layden's work on the Quantum enhanced Markov Chain Monte Carlo (QeMCMC): https://www.nature.com/articles/s41586-023-06095-4, with the main contribution focussed on applying a "coarse graining" to the quantum proposal in order to analyse the possibility of some dampened quantum speedup remaining while the number of required qubits is lowered. 
 
@@ -40,11 +40,11 @@ The quantum simulator used is Qulacs.
 
 
 ## References
-Quantum-enhanced Markov Chain Monte Carlo for systems larger than your Quantum Computer by S. Ferguson and P. Wallden
+Quantum-enhanced Markov Chain Monte Carlo for systems larger than your Quantum Computer by S. Ferguson and P. Wallden https://arxiv.org/abs/2405.04247
 
-Quantum-enhanced Markov chain Monte Carlo by David Layden et al.
+Quantum-enhanced Markov chain Monte Carlo by David Layden et al. https://www.nature.com/articles/s41586-023-06095-4
 
-Qulacs Simulator
+Qulacs Simulator https://quantum-journal.org/papers/q-2021-10-06-559/
 
 ## License
 The package is licensed under  MIT License
