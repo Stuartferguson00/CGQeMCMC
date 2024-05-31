@@ -138,14 +138,6 @@ class MCMC_qulacs:
         Returns:
             MCMCChain: The MCMC chain containing the states collected during the algorithm execution.
         """
-        # Rest of the code...
-    def run(self,
-        n_hops: int,
-        initial_state: Optional[str] = None,
-        name:str = "quMCMC",
-        verbose:bool = False):
-
-
 
 
         if initial_state is None:
