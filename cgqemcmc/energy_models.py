@@ -25,7 +25,7 @@ class IsingEnergyFunction:
     
     """
 
-    def __init__(self, J: np.array, h: np.array, name:str = None) -> None:
+    def __init__(self, J: np.array, h: np.array, name:str = None, negative_energy:bool = True) -> None:
         """
             ARGS:
             ----
@@ -34,6 +34,7 @@ class IsingEnergyFunction:
             name: Name of ising model
 
         """
+        self.negative_energy = negative_energy
         self.J = J
         self.h = h
         self.S = None
@@ -154,8 +155,8 @@ class IsingEnergyFunction:
             #THIS ONLY WORKS IF THE INPUT IS NOT UPPER DIAGONAL.
             energy = 0.5 * np.dot(state.transpose(), self.J.dot(state)) + np.dot(
                         self.h.transpose(), state)
-
-            energy = - energy
+            if self.negative_energy:
+                energy = - energy
         except:
             print("the weird error again. ")
             print("state: ")
