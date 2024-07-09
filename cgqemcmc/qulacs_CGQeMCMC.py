@@ -189,7 +189,7 @@ class MCMC_qulacs:
 
 
             if accepted:
-                current_state = MCMCState(s_prime, accepted, energy_sprime, pos = i) #mcmc_chain.current_state
+                current_state = mcmc_chain.current_state#MCMCState(s_prime, accepted, energy_sprime, pos = i) #mcmc_chain.current_state
                 energy_s = energy_sprime #self.model.get_energy(current_state.bitstring)
 
         return mcmc_chain
