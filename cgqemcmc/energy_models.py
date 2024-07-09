@@ -160,6 +160,7 @@ class IsingEnergyFunction:
             print("the weird error again. ")
             print("state: ")
             print(state)
+            print(type(state))
             energy = 1000
 
         return energy
