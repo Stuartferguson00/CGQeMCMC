@@ -42,7 +42,6 @@ class IsingEnergyFunction:
         self.lowest_energy  = None
         self.num_spins = len(h)
         self.alpha = np.sqrt(self.num_spins) / np.sqrt( sum([J[i][j]**2 for i in range(self.num_spins) for j in range(i)]) + sum([h[j]**2 for j in range(self.num_spins)])  )
-        
         if name is None: 
             self.name = 'JK_random'
         else : self.name = name 

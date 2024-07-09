@@ -125,7 +125,8 @@ class MCMC_qulacs:
         n_hops: int,
         initial_state: Optional[str] = None,
         name:str = "quMCMC",
-        verbose:bool = False):
+        verbose:bool = False,
+        sample_frequency:int = 1):
         """
         Runs the quantum MCMC algorithm for a specified number of hops.
 
@@ -134,17 +135,11 @@ class MCMC_qulacs:
             initial_state (Optional[str], optional): The initial state for the MCMC algorithm. If not provided, a random state will be generated. Defaults to None.
             name (str, optional): The name of the MCMC chain. Defaults to "quMCMC".
             verbose (bool, optional): Whether to print verbose output during the algorithm execution. Defaults to False.
+            sample_frequency (int, optional): The frequency at which to sample states. Defaults to 1.
 
         Returns:
             MCMCChain: The MCMC chain containing the states collected during the algorithm execution.
         """
-        # Rest of the code...
-    def run(self,
-        n_hops: int,
-        initial_state: Optional[str] = None,
-        name:str = "quMCMC",
-        verbose:bool = False):
-
 
 
 
@@ -180,6 +175,7 @@ class MCMC_qulacs:
 
         mcmc_chain = MCMCChain([current_state], name= name)
 
+        
         for i in tqdm(range(0, n_hops), desc='runnning quantum MCMC steps . ..', disable= not verbose ):
             s_prime = self.get_s_prime(current_state,gamma[i], time[i])
 
@@ -187,12 +183,14 @@ class MCMC_qulacs:
             accepted = test_accept(
                 energy_s, energy_sprime, temperature=self.temp
             )
-            mcmc_chain.add_state(MCMCState(s_prime, accepted, energy_sprime, pos = i))
+            
+            if i//sample_frequency == i/sample_frequency:
+                mcmc_chain.add_state(MCMCState(s_prime, accepted, energy_sprime, pos = i))
 
 
             if accepted:
-                current_state = mcmc_chain.current_state
-                energy_s = self.model.get_energy(current_state.bitstring)
+                current_state = s_prime #mcmc_chain.current_state
+                energy_s = energy_sprime #self.model.get_energy(current_state.bitstring)
 
         return mcmc_chain
     
@@ -664,9 +662,9 @@ class MCMC_qulacs:
             partial_model = self.define_accurate_partial_model(choices, full_index, current_state)
 
             c_btstring = ''.join(map(str, change_bitstring))
+
             CM = Circuit_Maker(partial_model, gamma, time, self.single_qubit_mixer)
             binary = CM.get_state_obtained_binary(c_btstring)
-
             if i == 0:
                 # put in all the original states for unchanged spins
                 S_final = np.zeros(self.n_spins, dtype=int)
