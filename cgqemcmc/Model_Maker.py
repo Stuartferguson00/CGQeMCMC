@@ -1,5 +1,5 @@
 import numpy as np
-from .energy_models import IsingEnergyFunction, Exact_Sampling
+from .energy_models import IsingEnergyFunction
 import itertools
 
 

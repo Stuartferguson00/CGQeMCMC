@@ -5,7 +5,7 @@ import numpy as np
 import itertools
 from typing import Optional
 from tqdm import tqdm
-from .basic_utils import qsm, states, MCMCChain, MCMCState
+from .basic_utils import MCMCChain, MCMCState
 import scipy
 import random
 
