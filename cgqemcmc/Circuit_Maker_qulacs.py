@@ -1,5 +1,14 @@
 import numpy as np
-from qulacs import QuantumState, QuantumCircuit
+from qulacs import QuantumCircuit
+
+try:
+    from qulacs import QuantumStateGpu as QuantumState
+    print("Using GPU qulacs")
+except:
+    from qulacs import QuantumState
+    print("Using CPU qulacs as qulacs install is not configured for GPU simulation ")
+
+#from qulacs import QuantumState, QuantumCircuit
 from scipy.linalg import expm
 from qulacs.gate import DenseMatrix
 from qulacs.gate import X, Y, Z  , Pauli, Identity, merge
