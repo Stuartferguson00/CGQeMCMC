@@ -7,9 +7,10 @@ import itertools
 class Model_Maker:
     # Class to control the initialisation of an energy model. 
     # It might seem a bit convoluted, but will allow for more complex models to be made in future.
-    def __init__(self, n_spins, model_type, name, J = None, h = None):
+    def __init__(self, n_spins, model_type, name, J = None, h = None, negative_energy = True):
         self.name = name
         self.n_spins = n_spins
+        self.negative_energy = negative_energy
         if type(model_type) is not str:
             print("model type must be a string representing the model you request")
         elif model_type == "Fully Connected Ising":
@@ -19,7 +20,7 @@ class Model_Maker:
         elif model_type == "input_J":
             self.J = J
             self.h = h
-            self.model = IsingEnergyFunction(self.J, self.h, name=self.name)
+            self.model = IsingEnergyFunction(self.J, self.h, name=self.name,negative_energy = self.negative_energy)
 
     def make_fully_connected_Ising(self):
         shape_of_J = (self.n_spins, self.n_spins)
