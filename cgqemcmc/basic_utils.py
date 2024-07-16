@@ -18,7 +18,7 @@ from scipy.optimize import curve_fit
 import matplotlib.colors as mcolors
 
 ## qiskit imports ##
-from qiskit import Aer
+#from qiskit import Aer
 # from qiskit import (  # , InstructionSet
 #     IBMQ,
 #     Aer,
@@ -42,9 +42,9 @@ from qiskit import Aer
 # )
 
 ## qiskit-backends ##
-qsm = Aer.get_backend("qasm_simulator")
-stv = Aer.get_backend("statevector_simulator")
-aer = Aer.get_backend("aer_simulator")
+#qsm = Aer.get_backend("qasm_simulator")
+#stv = Aer.get_backend("statevector_simulator")
+#aer = Aer.get_backend("aer_simulator")
 
 
 
