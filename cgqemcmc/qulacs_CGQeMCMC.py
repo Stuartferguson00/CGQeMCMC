@@ -181,14 +181,18 @@ class MCMC_qulacs:
                 energy_s, energy_sprime, temperature=self.temp
             )
             
-            if i//sample_frequency == i/sample_frequency:
-                mcmc_chain.add_state(MCMCState(s_prime, accepted, energy_sprime, pos = i))
+
 
 
             if accepted:
                 current_state = mcmc_chain.current_state#MCMCState(s_prime, accepted, energy_sprime, pos = i) #mcmc_chain.current_state
                 energy_s = energy_sprime #self.model.get_energy(current_state.bitstring)
 
+            
+            if i//sample_frequency == i/sample_frequency:
+                mcmc_chain.add_state(MCMCState(current_state, accepted, energy_s, pos = i))
+            
+            
         return mcmc_chain
     
     def get_s_prime(self, current_state, g, t):
