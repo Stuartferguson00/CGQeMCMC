@@ -230,9 +230,19 @@ class MCMC_Classical:
         n_hops: int,
         initial_state: Optional[str] = None,
         name:str = "quMCMC",
-        verbose:bool = False):
+        verbose:bool = False,
+        sample_frequency:int = 1):
         """
-        Last 'return_last_n_states' elements of states so collected (default value=500). one can then deduce the distribution from it!
+        Args:
+            n_hops (int): The number of hops to perform in the MCMC algorithm.
+            initial_state (Optional[str], optional): The initial state for the MCMC algorithm. If not provided, a random state will be generated. Defaults to None.
+            name (str, optional): The name of the MCMC chain. Defaults to "quMCMC".
+            verbose (bool, optional): Whether to print verbose output during the algorithm execution. Defaults to False.
+            sample_frequency (int, optional): The frequency at which to sample states. Defaults to 1.
+
+        Returns:
+            MCMCChain: The MCMC chain containing the states collected during the algorithm execution.
+            
         """
 
 
@@ -264,12 +274,17 @@ class MCMC_Classical:
             accepted = test_accept(
                 energy_s, energy_sprime, temperature=self.temp
             )
-            mcmc_chain.add_state(MCMCState(s_prime, accepted, energy_sprime, pos = i))
+            #mcmc_chain.add_state(MCMCState(s_prime, accepted, energy_sprime, pos = i))
 
 
             if accepted:
                 current_state = mcmc_chain.current_state
                 energy_s = self.model.get_energy(current_state.bitstring)
+                
+                
+                
+            if i//sample_frequency == i/sample_frequency:
+                mcmc_chain.add_state(MCMCState(current_state, accepted, energy_s, pos = i))
 
         return mcmc_chain
 

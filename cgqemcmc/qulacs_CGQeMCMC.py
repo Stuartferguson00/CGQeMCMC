@@ -121,7 +121,7 @@ class MCMC_qulacs:
     def run(self,
         n_hops: int,
         initial_state: Optional[str] = None,
-        name:str = "quMCMC",
+        name:str = "(CG)QeMCMC",
         verbose:bool = False,
         sample_frequency:int = 1):
         """
