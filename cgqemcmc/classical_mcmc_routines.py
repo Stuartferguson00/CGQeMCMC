@@ -279,6 +279,7 @@ class MCMC_Classical:
             )
             #mcmc_chain.add_state(MCMCState(s_prime, accepted, energy_sprime, pos = i))
 
+            print(i)
 
             if accepted:
                 current_state = MCMCState(s_prime, accepted, energy_s, pos = i)#mcmc_chain.current_state
@@ -287,6 +288,7 @@ class MCMC_Classical:
                 
             
             if i//sample_frequency == i/sample_frequency:
+                print("saved")
                 mcmc_chain.add_state(MCMCState(current_state.bitstring, accepted, energy_s, pos = i))
 
         return mcmc_chain
