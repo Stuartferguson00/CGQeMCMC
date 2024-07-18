@@ -265,9 +265,12 @@ class MCMC_Classical:
         
 
         mcmc_chain = MCMCChain([current_state], name= name)
-
+        
         for i in tqdm(range(0, n_hops), desc='runnning classical MCMC steps . ..', disable= not verbose ):
 
+
+            print(type(current_state))
+            print(current_state.bitstring)            
             s_prime = self.update(current_state)
             
             energy_sprime = self.model.get_energy(s_prime)
@@ -278,13 +281,13 @@ class MCMC_Classical:
 
 
             if accepted:
-                current_state = mcmc_chain.current_state
-                energy_s = self.model.get_energy(current_state.bitstring)
+                current_state = MCMCState(s_prime, accepted, energy_s, pos = i)#mcmc_chain.current_state
+                energy_s = energy_sprime#self.model.get_energy(current_state.bitstring)
                 
                 
-                
+            
             if i//sample_frequency == i/sample_frequency:
-                mcmc_chain.add_state(MCMCState(current_state, accepted, energy_s, pos = i))
+                mcmc_chain.add_state(MCMCState(current_state.bitstring, accepted, energy_s, pos = i))
 
         return mcmc_chain
 

@@ -46,10 +46,10 @@ class IsingEnergyFunction:
             self.name = 'JK_random'
         else : self.name = name 
         
-        #10 optional optional states to use for fair starting state between different simulations
+        #100 optional optional states to use for fair starting state between different simulations
         
         self.initial_state = []
-        for i in range(10): 
+        for i in range(100): 
             self.initial_state.append(np.random.randint(0, 2, self.num_spins, dtype = int))
 
         
