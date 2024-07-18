@@ -269,8 +269,8 @@ class MCMC_Classical:
         for i in tqdm(range(0, n_hops), desc='runnning classical MCMC steps . ..', disable= not verbose ):
 
 
-            print(type(current_state))
-            print(current_state.bitstring)            
+            #print(type(current_state))
+            #print(current_state.bitstring)            
             s_prime = self.update(current_state)
             
             energy_sprime = self.model.get_energy(s_prime)

@@ -50,7 +50,7 @@ class IsingEnergyFunction:
         
         self.initial_state = []
         for i in range(100): 
-            self.initial_state.append(np.random.randint(0, 2, self.num_spins, dtype = int))
+            self.initial_state.append(''.join(str(i) for i in np.random.randint(0, 2, self.num_spins, dtype = int)))
 
         
     def change_J(self, J):
