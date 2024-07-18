@@ -189,7 +189,7 @@ class MCMC_qulacs:
                 energy_s = energy_sprime #self.model.get_energy(current_state.bitstring)
 
             
-            if i//sample_frequency == i/sample_frequency:
+            if i//sample_frequency == i/sample_frequency and i != 0:
                 mcmc_chain.add_state(MCMCState(current_state.bitstring, accepted, energy_s, pos = i))
             
             
