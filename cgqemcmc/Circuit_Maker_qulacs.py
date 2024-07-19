@@ -2,7 +2,8 @@ import numpy as np
 from qulacs import QuantumCircuit
 
 try:
-    from qulacs import QuantumStateGpu as QuantumState
+    from qulacs import QuantumStateGpu as QuantumStateGpu
+    from qulacs import QuantumState
     print("Using GPU qulacs")
 except:
     from qulacs import QuantumState
@@ -13,7 +14,7 @@ from scipy.linalg import expm
 from qulacs.gate import DenseMatrix
 from qulacs.gate import X, Y, Z  , Pauli, Identity, merge
 from itertools import combinations
-
+import torch
 
 
 
@@ -86,8 +87,11 @@ class Circuit_Maker:
         #get the output bitstring s' given s
 
         qc_for_s = self.build_circuit(s)
-
-        q_state= QuantumState(qubit_count=self.n_spins)
+        num_gpus = torch.cuda.device_count()
+        if num_gpus !=0:
+            q_state= QuantumStateGpu(qubit_count=self.n_spins)
+        else:
+            q_state= QuantumState(qubit_count=self.n_spins)
         q_state.set_zero_state()
         qc_for_s.update_quantum_state(q_state)
 
@@ -99,8 +103,11 @@ class Circuit_Maker:
         #get the probability of each s' given s
 
         qc_for_s = self.build_circuit(s)
-
-        q_state = QuantumState(qubit_count = self.n_spins )
+        num_gpus = torch.cuda.device_count()
+        if num_gpus !=0:
+            q_state= QuantumStateGpu(qubit_count=self.n_spins)
+        else:
+            q_state= QuantumState(qubit_count=self.n_spins)
         q_state.set_zero_state()
         qc_for_s.update_quantum_state(q_state)
 
