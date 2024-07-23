@@ -58,6 +58,7 @@ class MCMC_qulacs:
         self.CG_sample_number = CG_sample_number
         self.naive = naive
 
+        #sort out how many quantum computations to do,a dn what sizes to do
         avg_sample_size = self.n_spins / self.CG_sample_number
         if avg_sample_size == self.max_qubits:
             self.sample_sizes = np.ones(self.CG_sample_number) * self.max_qubits
@@ -66,6 +67,10 @@ class MCMC_qulacs:
             self.sample_sizes[-1] = self.n_spins - np.sum(self.sample_sizes[:-1])
         else:
             self.sample_sizes = [self.max_qubits,]
+            
+            
+            
+        print("Quantum computations for this Ising model problem will be of qubit sizes: " +str(self.sample_sizes))
 
         self.single_qubit_mixer = single_qubit_mixer
         self.S = None
