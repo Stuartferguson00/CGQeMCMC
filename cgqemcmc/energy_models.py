@@ -25,7 +25,7 @@ class IsingEnergyFunction:
     
     """
 
-    def __init__(self, J: np.array, h: np.array, name:str = None, negative_energy:bool = True) -> None:
+    def __init__(self, J: np.array, h: np.array, name:str = None, negative_energy:bool = True, no_inits = False) -> None:
         """
             ARGS:
             ----
@@ -50,10 +50,10 @@ class IsingEnergyFunction:
         else : self.name = name 
         
         #100 optional optional states to use for fair starting state between different simulations
-        
-        self.initial_state = []
-        for i in range(100): 
-            self.initial_state.append(''.join(str(i) for i in np.random.randint(0, 2, self.num_spins, dtype = int)))
+        if not no_inits:
+            self.initial_state = []
+            for i in range(100): 
+                self.initial_state.append(''.join(str(i) for i in np.random.randint(0, 2, self.num_spins, dtype = int)))
 
         
     def change_J(self, J):

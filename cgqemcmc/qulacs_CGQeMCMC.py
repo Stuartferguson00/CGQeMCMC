@@ -476,7 +476,7 @@ class MCMC_qulacs:
 
             change_bitstring = BIT_STRING_ARR[choices]
 
-            if self.CG_sample_number > 1 or self.naive == True:
+            if self.naive == True:
                 partial_model = self.define_partial_model(choices, full_index)
             else:
                 partial_model = self.define_accurate_partial_model(choices, full_index, current_state)
@@ -589,7 +589,7 @@ class MCMC_qulacs:
             cnt += 1
 
         # define new model post coarse-graining
-        partial_model = IsingEnergyFunction(partial_J, partial_h, name="partial model")
+        partial_model = IsingEnergyFunction(partial_J, partial_h, name="partial model",no_inits = True)
 
         return partial_model
     
