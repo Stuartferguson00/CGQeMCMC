@@ -71,7 +71,7 @@ class Circuit_Maker:
         #create trotter circuit that is irrelevant of the input string
         self.qc_evol_h1 = self.fn_qc_h1()  
         self.qc_evol_h2 = self.fn_qc_h2()
-        self.trotter_ckt = self.trottered_qc_for_transition(self.qc_evol_h1, self.qc_evol_h2,self.num_trotter_steps)
+        self.trotter_ckt = self.trottered_qc_for_transition(self.qc_evol_h1, self.qc_evol_h2, self.num_trotter_steps)
 
 
         # init_qc=initialise_qc(n_spins=n_spins, bitstring='1'*n_spins)

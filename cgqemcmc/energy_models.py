@@ -62,7 +62,6 @@ class IsingEnergyFunction:
         self.alpha = np.sqrt(self.num_spins) / np.sqrt( sum([self.J[i][j]**2 for i in range(self.num_spins) for j in range(i)]) + sum([self.h[j]**2 for j in range(self.num_spins)])  )
 
         
-    
     @property
     def get_J(self):
         return self.J
@@ -157,8 +156,8 @@ class IsingEnergyFunction:
             #THIS ONLY WORKS IF THE INPUT IS NOT UPPER DIAGONAL.
             energy = 0.5 * np.dot(state.transpose(), self.J.dot(state)) + np.dot(
                         self.h.transpose(), state)
-            #if self.negative_energy:
-            #    energy = - energy
+            if self.negative_energy:
+                energy = - energy
         except:
             print("the weird error again. ")
             print("state: ")
