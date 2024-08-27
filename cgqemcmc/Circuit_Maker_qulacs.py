@@ -1,4 +1,5 @@
 import numpy as np
+import qulacs
 from qulacs import QuantumCircuit
 
 try:
@@ -8,11 +9,11 @@ try:
 except:
     from qulacs import QuantumState
     print("Using CPU qulacs as qulacs install is not configured for GPU simulation ")
-
+from qulacs import NoiseSimulator
 #from qulacs import QuantumState, QuantumCircuit
 from scipy.linalg import expm
 from qulacs.gate import DenseMatrix
-from qulacs.gate import X, Y, Z  , Pauli, Identity, merge
+from qulacs.gate import X, Y, Z  , Pauli, Identity, merge, PauliRotation
 from itertools import combinations
 import torch
 
@@ -30,7 +31,7 @@ class Circuit_Maker:
 
     """
 
-    def __init__(self, model, gamma, time, single_qubit_mixer=True):
+    def __init__(self, model, gamma, time, single_qubit_mixer=True, noise_model=None, noise_prob_one_qubit = 0, noise_prob_two_qubit = 0):
 
         """
         Initialise Circuit_Maker object.
@@ -47,7 +48,7 @@ class Circuit_Maker:
             parameter in QeMCMC circuit
 
         single_qubit_mixer: bool
-            inherited from QuMCMC, honestly not 100% sure what it does.
+            inherited from QuMCMC, should get rid of for 0.2.0
             #I shouldr eally check this
 
 
@@ -55,7 +56,8 @@ class Circuit_Maker:
 
 
         """
-
+        self.noise_prob_one_qubit = noise_prob_one_qubit
+        self.noise_prob_two_qubit = noise_prob_two_qubit
         self.single_qubit_mixer = single_qubit_mixer
         self.time = time
         self.gamma = gamma
@@ -69,19 +71,29 @@ class Circuit_Maker:
         self.num_trotter_steps = int(np.floor((self.time / self.delta_time)))
 
         #create trotter circuit that is irrelevant of the input string
+        
+
+        self.noise_model = noise_model
+        if self.noise_model == "Depolarizing" and self.noise_prob_one_qubit > 0:
+            print("Noise model is Depolarizing with one wubit probability:", self.noise_prob_one_qubit, "and two qubit probability:", self.noise_prob_two_qubit)
+            print("not yet fully implimented")
+        else:
+            print("Noise model is: ", self.noise_model)
+
         self.qc_evol_h1 = self.fn_qc_h1()  
         self.qc_evol_h2 = self.fn_qc_h2()
         self.trotter_ckt = self.trottered_qc_for_transition(self.qc_evol_h1, self.qc_evol_h2, self.num_trotter_steps)
+        
+            
 
-
-        # init_qc=initialise_qc(n_spins=n_spins, bitstring='1'*n_spins)
 
     def build_circuit(self, s:str):
         #build a circuit for a given bitstring
         qc_s = self.initialise_qc(bitstring= s)
-        qc_for_s = self.combine_2_qc(qc_s, self.trotter_ckt)# i can get rid of this!
-
+        qc_for_s = self.combine_2_qc(qc_s, self.trotter_ckt)
         return qc_for_s
+    
+    
 
     def get_state_obtained_binary(self, s):
         #get the output bitstring s' given s
@@ -135,7 +147,7 @@ class Circuit_Maker:
 
 
 
-    def fn_qc_h1(self) -> QuantumCircuit :
+    def fn_qc_h1(self ) -> QuantumCircuit :
         """
         Create a Quantum Circuit for time-evolution under
         hamiltonain H1 (described in the paper)
@@ -148,24 +160,31 @@ class Circuit_Maker:
         qc_h1 = QuantumCircuit(self.n_spins)
         if self.single_qubit_mixer:
             for j in range(0, self.n_spins):
-                # unitary_gate=DenseMatrix(index=num_spins-1-j,
-                #                 matrix=np.round(expm(-1j*delta_time*(a*X(2).get_matrix()+b_list[j]*Z(2).get_matrix())),decimals=6)
-                #                 )# this will change accordingly.
-
+                
                 Matrix = np.round(expm(-1j*self.delta_time*(a*X(2).get_matrix()+b_list[j]*Z(2).get_matrix())),decimals=6)
 
                 unitary_gate=DenseMatrix(index=self.n_spins-1-j,
-                                matrix = Matrix)# this will change accordingly.
-                qc_h1.add_gate(unitary_gate)
+                                    matrix = Matrix)# this will change accordingly.
+                
+                if self.noise_model == "Depolarizing" and self.noise_prob_one_qubit > 0:
+                    qc_h1.add_noise_gate(unitary_gate, "Depolarizing", self.noise_prob_one_qubit)
+                else:
+                    
+                    qc_h1.add_gate(unitary_gate)
+                    
         else:# added by Neel
 
             for j in range(0,self.n_spins):
-
                 matrix_to_exponentiate=b_list[j]*Z(2).get_matrix()
                 unitary_gate=DenseMatrix(index=self.n_spins-1-j,
-                                        matrix=np.round(expm(-1j*self.delta_time*matrix_to_exponentiate),decimals=6)
-                                        )
-                qc_h1.add_gate(unitary_gate)
+                                matrix=np.round(expm(-1j*self.delta_time*matrix_to_exponentiate),decimals=6))
+                if self.noise_model == "Depolarizing" and self.noise_prob_one_qubit > 0: 
+                    qc_h1.add_noise_gate(unitary_gate, "Depolarizing", self.noise_prob_one_qubit)
+                else:
+                    
+                    qc_h1.add_gate(unitary_gate)
+                
+                    
 
 
         return qc_h1
@@ -196,8 +215,18 @@ class Circuit_Maker:
                 #print("j,k is:",(j,k))
                 target_list=[self.n_spins-1-j,self.n_spins-1-k]#num_spins-1-j,num_spins-1-(j+1)
                 angle = theta_array[j,k]
-
-                qc_for_evol_h2.add_multi_Pauli_rotation_gate(index_list=target_list,pauli_ids=pauli_z_index,angle = angle)
+                if self.noise_model == "Depolarizing" and self.noise_prob_two_qubit > 0:
+                    #print("This bit will not work idk what to do")
+                    gate = qulacs.gate.PauliRotation(target_list, pauli_z_index, angle)
+                    qc_for_evol_h2.add_noise_gate(gate, "Depolarizing", self.noise_prob_two_qubit)
+                    
+                    #qc_for_evol_h2.add_multi_Pauli_rotation_gate(index_list=target_list,pauli_ids=pauli_z_index,angle = angle)
+                    #qc_for_evol_h2.add_noise_gate(PauliRotation(target_list, pauli_z_index, angle), "Depolarizing", self.noise_prob)
+                    
+                    #quit()
+                    #qc_for_evol_h2.add_multi_Pauli_rotation_gate(index_list=target_list,pauli_ids=pauli_z_index,angle = angle)
+                else:
+                    qc_for_evol_h2.add_multi_Pauli_rotation_gate(index_list=target_list,pauli_ids=pauli_z_index,angle = angle)
                 
                 
         if not(self.single_qubit_mixer):
@@ -207,9 +236,13 @@ class Circuit_Maker:
             all_poss_combn_asc_order=list(combinations(indices,r))
             for i in range(0,len(all_poss_combn_asc_order)):
                 target_list=list(all_poss_combn_asc_order[i])
-                angle = -1 * self.gamma * self.delta_time ## @pafloxy : make the angle 'gamma' dependent
-
-                qc_for_evol_h2.add_multi_Pauli_rotation_gate(index_list=target_list,
+                angle = -1 * self.gamma * self.delta_time 
+                
+                if self.noise_model == "Depolarizing" and self.noise_prob_two_qubit > 0:
+                    gate = qulacs.gate.PauliRotation(target_list, pauli_z_index, angle)
+                    qc_for_evol_h2.add_noise_gate(gate, "Depolarizing", self.noise_prob_two_qubit)
+                else:
+                    qc_for_evol_h2.add_multi_Pauli_rotation_gate(index_list=target_list,
                                                                 pauli_ids=pauli_x_index,
                                                                 angle=angle)
 

@@ -25,7 +25,7 @@ class MCMC_qulacs:
     
     """
     
-    def __init__(self, model, gamma, time, temp, max_qubits=None, CG_sample_number=1, Q=None, A=None, single_qubit_mixer=True, brute_sample=False, brute_sample_multiplier=1, naive=False):
+    def __init__(self, model, gamma, time, temp, max_qubits=None, CG_sample_number=1, Q=None, A=None, single_qubit_mixer=True, brute_sample=False, brute_sample_multiplier=1, naive=False, noise_model = None, noise_prob_one_qubit = 0, noise_prob_two_qubit = 0):
         """
         Initializes an instance of the CGQeMCMC class.
 
@@ -44,6 +44,9 @@ class MCMC_qulacs:
             naive (bool, optional): Flag indicating whether to use naive approach (see paper). Defaults to False.
         """
         self.Q = Q
+        self.noise_prob_one_qubit = noise_prob_one_qubit
+        self.noise_prob_two_qubit = noise_prob_two_qubit
+        self.noise_model = noise_model
         self.brute_sample = brute_sample
         self.brute_sample_multiplier = brute_sample_multiplier
         self.A = A
@@ -80,6 +83,7 @@ class MCMC_qulacs:
         else:
             self.course_graining = True
 
+        
 
     def find_spec_gap_q(self):
         """
@@ -196,8 +200,7 @@ class MCMC_qulacs:
             
             if i//sample_frequency == i/sample_frequency and i != 0:
                 mcmc_chain.add_state(MCMCState(current_state.bitstring, accepted, energy_s, pos = i))
-            
-            
+        
         return mcmc_chain
     
     def get_s_prime(self, current_state, g, t):
@@ -224,7 +227,7 @@ class MCMC_qulacs:
                 t = self.time
 
         if not self.course_graining:
-            CM = Circuit_Maker(self.model, g, t, self.single_qubit_mixer)
+            CM = Circuit_Maker(self.model, g, t, self.single_qubit_mixer, noise_model = self.noise_model, noise_prob_one_qubit = self.noise_prob_one_qubit, noise_prob_two_qubit = self.noise_prob_two_qubit)
             try:
                 s_prime = CM.get_state_obtained_binary(current_state.bitstring)
             except:
@@ -273,7 +276,7 @@ class MCMC_qulacs:
                     Q = np.zeros((2 ** self.n_spins, 2 ** self.n_spins))
                     energies = []
                     for i, s in enumerate(self.S):
-                        CM = Circuit_Maker(self.model, self.gamma, self.time, self.single_qubit_mixer)
+                        CM = Circuit_Maker(self.model, self.gamma, self.time, self.single_qubit_mixer, noise_model = self.noise_model, noise_prob_one_qubit = self.noise_prob_one_qubit, noise_prob_two_qubit = self.noise_prob_two_qubit)
                         probs = CM.get_state_obtained_probs(s)
                         Q[i, :] += probs
                     
@@ -345,7 +348,7 @@ class MCMC_qulacs:
                         g_ = gammas[i]
                         
                         #initialise particular circuit base
-                        CM = Circuit_Maker(self.model, g_, t_ , self.single_qubit_mixer)
+                        CM = Circuit_Maker(self.model, g_, t_ , self.single_qubit_mixer, noise_model = self.noise_model, noise_prob_one_qubit = self.noise_prob_one_qubit, noise_prob_two_qubit = self.noise_prob_two_qubit)
 
                         #loop through each starting state and find probability of outcomes
                         Q = np.zeros((2 ** self.n_spins, 2 ** self.n_spins))
@@ -483,7 +486,7 @@ class MCMC_qulacs:
 
             c_btstring = ''.join(map(str, change_bitstring))
 
-            CM = Circuit_Maker(partial_model, gamma, time, self.single_qubit_mixer)
+            CM = Circuit_Maker(partial_model, gamma, time, self.single_qubit_mixer, noise_model = self.noise_model, noise_prob_one_qubit = self.noise_prob_one_qubit, noise_prob_two_qubit = self.noise_prob_two_qubit)
             probs = CM.get_state_obtained_probs(c_btstring)
 
             S_ = [''.join(i) for i in itertools.product('01', repeat=partial_model.num_spins)]
@@ -669,7 +672,7 @@ class MCMC_qulacs:
 
             c_btstring = ''.join(map(str, change_bitstring))
 
-            CM = Circuit_Maker(partial_model, gamma, time, self.single_qubit_mixer)
+            CM = Circuit_Maker(partial_model, gamma, time, self.single_qubit_mixer, noise_model = self.noise_model, noise_prob_one_qubit = self.noise_prob_one_qubit, noise_prob_two_qubit = self.noise_prob_two_qubit)
             binary = CM.get_state_obtained_binary(c_btstring)
             if i == 0:
                 # put in all the original states for unchanged spins

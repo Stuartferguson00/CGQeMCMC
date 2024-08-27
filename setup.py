@@ -2,13 +2,13 @@ from setuptools import setup, find_packages
 
 setup(
     name='cgqemcmc',
-    version='0.1.0',  # Update this for your version
-    packages=['cgqemcmc'],  # This is the name of the folder where you have your code
+    use_scm_version=True,  # Use setuptools-scm for versioning
+    setup_requires=['setuptools_scm'],
+    packages=find_packages(),
     include_package_data=True,
-    #install_requires=['numpy>=1.14.5'],#Have ignored this for now
+    # install_requires=['numpy>=1.14.5'],  # Have ignored this for now
     # metadata to display on PyPI
     author='S. Ferguson',
     author_email='s1846096@ed.ac.uk',
     description='Code that coarse-grains the QeMCMC',
-
 )
