@@ -78,12 +78,15 @@ class Circuit_Maker:
             print("Noise model is Depolarizing with one wubit probability:", self.noise_prob_one_qubit, "and two qubit probability:", self.noise_prob_two_qubit)
             print("not yet fully implimented")
         else:
-            print("Noise model is: ", self.noise_model)
+            pass
+            #print("Noise model is: ", self.noise_model)
 
         self.qc_evol_h1 = self.fn_qc_h1()  
         self.qc_evol_h2 = self.fn_qc_h2()
         self.trotter_ckt = self.trottered_qc_for_transition(self.qc_evol_h1, self.qc_evol_h2, self.num_trotter_steps)
         
+        if model.negative_energy == False:
+            print("negative_energy==False doesnt work properly")
             
 
 

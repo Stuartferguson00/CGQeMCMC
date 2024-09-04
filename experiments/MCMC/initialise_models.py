@@ -45,7 +45,7 @@ model_dir = ''.join(l_model_dir)
 
 models = []
 for i in tqdm(range(0,reps)):
-    MK = Model_Maker(n_spins, "Fully Connected Ising", str(n_spins) +" number: " +str(i))
+    MK = Model_Maker(n_spins, "Fully Connected Ising", str(n_spins) +" number: " +str(i), negative_energy=True)
     model = MK.model
     models.append(model)
 

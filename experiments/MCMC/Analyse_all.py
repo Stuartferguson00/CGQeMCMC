@@ -424,7 +424,7 @@ u_sampled = True
 thin_u = 100
 u_color = "orange"
 
-do_quantum_Q = False   
+do_quantum_Q = True   
 Q_sampled =   True
 thin_Q = 1
 Q_color = "purple"
@@ -446,7 +446,7 @@ thin_nms = 10
 nms_color = "lightblue"
 
 
-do_quantum_dp = True  
+do_quantum_dp = False  
 dp_sampled = True
 thin_dp = 10
 dp_color = "k"
@@ -543,10 +543,11 @@ try:
     outp = pickle.load(fileObj)
     fileObj.close()
     
-    highest_prob_states,lowest_energies,minima_mags,exact_mag = outp
+    highest_prob_states,lowest_energies,minima_mags,exact_mag,min_s_mu_s = outp
     print("got to this one")
     print(lowest_energies)
     print(highest_prob_states)
+    got_vals = True
     
 except:
     print("except1")

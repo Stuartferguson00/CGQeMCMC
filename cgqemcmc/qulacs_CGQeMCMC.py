@@ -203,6 +203,60 @@ class MCMC_qulacs:
         
         return mcmc_chain
     
+    
+    def run_many_hops_constant_s(self,
+        n_hops: int,
+        initial_state: np.ndarray,
+        name:str = "(CG)QeMCMC",
+        verbose:bool = False):
+        """
+        Runs the quantum MCMC algorithm for a specified number of hops.
+
+        Args:
+            n_hops (int): The number of hops to perform in the MCMC algorithm.
+            initial_state (Optional[str], optional): The initial state for the MCMC algorithm. If not provided, a random state will be generated. Defaults to None.
+            name (str, optional): The name of the MCMC chain. Defaults to "quMCMC".
+            verbose (bool, optional): Whether to print verbose output during the algorithm execution. Defaults to False.
+            sample_frequency (int, optional): The frequency at which to sample states. Defaults to 1.
+
+        Returns:
+            MCMCChain: The MCMC chain containing the states collected during the algorithm execution.
+        """
+
+
+
+        initial_state = MCMCState(initial_state, accepted=True)
+        current_state: MCMCState = initial_state
+        energy_s = self.model.get_energy(current_state.bitstring)
+        initial_state.energy = energy_s
+
+        if verbose: print("starting with: ", current_state.bitstring, "with energy:", energy_s)
+
+
+
+
+        if type(self.gamma) is float:
+            gamma = self.gamma*np.ones(n_hops)
+        elif type(self.gamma) is tuple:
+            gamma = np.round(np.random.uniform(low= min(self.gamma), high = max(self.gamma),size = n_hops), decimals=6)
+        else:
+            print("gamma is wrong type")
+            
+        if type(self.time) is int:
+            time = self.time*np.ones(n_hops)
+        elif type(self.time) is tuple:
+            time = np.random.randint(low= np.min(self.time), high = np.max(self.time),size = n_hops)
+        else:
+            print("time is wrong type")
+
+        energies = []
+        for i in tqdm(range(0, n_hops), desc='runnning quantum constant s steps ...', disable= not verbose ):
+            s_prime = self.get_s_prime(current_state, gamma[i], time[i])
+            energy_sprime = self.model.get_energy(s_prime)
+            energies.append(energy_sprime)  
+            
+        return energies, energy_s
+    
     def get_s_prime(self, current_state, g, t):
         """
         Returns the next state s_prime based on the current state, g, and t.
