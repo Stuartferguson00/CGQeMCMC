@@ -1,11 +1,10 @@
+# The above code is importing the `sys` module in Python. The `sys` module provides access to some
+# variables used or maintained by the interpreter and to functions that interact with the interpreter.
 import sys
 import os
-dir = os.path.dirname(os.path.abspath(__file__))
-root_dir = os.path.dirname(os.path.dirname(dir))
-sys.path.insert(0, root_dir)
-
+# Add the parent directory to sys.path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import matplotlib.pyplot as plt
-from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from cgqemcmc.basic_utils import *
 import itertools
 from cgqemcmc.energy_models import IsingEnergyFunction, Exact_Sampling
@@ -19,8 +18,8 @@ import os
 
 
 n_spins = 9 # size of system
-m_q = np.sqrt(n_spins) # number of groups is assumed to be sqrt(n)
-temp = float(1) # temperature of system to analyse
+m_q = n_spins#np.sqrt(n_spins) # number of groups is assumed to be sqrt(n)
+temp = float(0.1) # temperature of system to analyse
 
 
 plot_first = True #whether to plot energy graph or not
@@ -35,11 +34,11 @@ t_str = t_str.replace(".", "_")
 if len(t_str)>6:
     t_str = t_str[:6]
 
+home = os.path.dirname(os.path.abspath(__file__))
 
-
-model_dir = dir+'/models_001/000.obj'
-results_dir = dir+'/results/'+t_str+'/oo_000_000.obj'
-Q_results_dir = dir+'/results/'+t_str+'/oo_000_000.obj'
+model_dir = home+'/models/000.obj'
+results_dir = home+'/results/'+t_str+'/oo_000_000.obj'
+Q_results_dir = home+'/results/'+t_str+'/oo_000_000.obj'
 
 
 
@@ -402,9 +401,11 @@ Q_results_dir = ''.join(l_results_dir)
 
 try:
     gc.disable()
+    print(Q_results_dir)
     fileObj = open(Q_results_dir, 'rb')
     results_list = pickle.load(fileObj)
     fileObj.close()
+    
     gc.enable()
 
     Q_all_energies_l = []

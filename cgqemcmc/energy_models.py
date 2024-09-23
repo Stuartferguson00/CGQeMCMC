@@ -7,9 +7,6 @@ from .prob_dist import  value_sorted_dict, DiscreteProbabilityDistribution
 from .basic_utils import plot_bargraph_desc_order
 from typing import Union
 from tqdm import tqdm
-import seaborn as sns
-
-from qulacs import PauliOperator, Observable
 import itertools
 
 ###########################################################################################
@@ -17,176 +14,203 @@ import itertools
 ###########################################################################################
 
 class IsingEnergyFunction:
-    """ 
-    A class to build the Ising Energy Function from self  
-    
-    Heavily modified from https://github.com/pafloxy/quMCMC to add functionality
-    
     
     """
+    A class to build the Ising Energy Function from self.
+    Heavily modified from https://github.com/pafloxy/quMCMC to add functionality.
+    Attributes:
+    -----------
+    negative_energy : bool
+        Indicates if the energy should be negative.
+    J : np.array
+        Weight-matrix of the interactions between the spins.
+    h : np.array
+        Local field to the spins.
+    S : list or None
+        List of all possible states.
+    all_energies : np.array or None
+        Array of energies for all possible states.
+    lowest_energy : float or None
+        The lowest energy found.
+    num_spins : int
+        Number of spins in the system.
+    alpha : float
+        Scaling factor for the energy.
+    name : str
+        Name of the Ising model.
+    initial_state : list
+        List of initial states for simulations.
+    Methods:
+    --------
+    __init__(J: np.array, h: np.array, name: str = None, negative_energy: bool = True, no_inits = False) -> None
+        Initializes the IsingEnergyFunction with given parameters.
+    get_energy(state: str) -> float
+        Returns the energy of a given state.
+    calc_an_energy(state: str) -> float
+        Calculates the energy of a given state.
+    get_all_energies() -> None
+        Calculates and stores the energies of all possible states.
+    get_lowest_energies(num_states: int) -> tuple[np.array, np.array]
+        Returns the lowest energies and their degeneracies.
+    find_lowest_values(arr: np.array, num_values: int = 5) -> tuple[np.array, np.array]
+        Finds the lowest values in an array and their counts.
+    get_lowest_energy() -> float
+        Returns the lowest energy found.
+    get_boltzmann_factor(state: Union[str, np.array], beta: float = 1.0) -> float
+        Returns the un-normalized Boltzmann probability of a given state.
+    get_boltzmann_factor_from_energy(E: float, beta: float = 1.0) -> float
+        Returns the un-normalized Boltzmann probability for a given energy.
 
-    def __init__(self, J: np.array, h: np.array, name:str = None, negative_energy:bool = True, no_inits = False) -> None:
+    
+    """    
+
+    def __init__(self, J: np.array, h: np.array, name:str = None, cost_function_signs:list = [-1,-1], no_initial_states = False) -> None:
+        
         """
-            ARGS:
-            ----
-            J: weight-matrix of the interactions between the spins 
-            h: local field to the spins 
-            name: Name of ising model
+        Initialize the Ising model.
+        Parameters:
+            J (np.array): Weight-matrix of the interactions between the spins.
+            h (np.array): Local field to the spins.
+            name (str, optional): Name of the Ising model. Defaults to None.
+            cost_function_signs (list, optional): List of two elements, the first element is the sign of the interaction term and the second element is the sign of the field term. Allows for the cost function to be flipped with respect to the standard Ising model. Defaults to [-1, -1].
+            no_initial_states (bool, optional): If True, no initial states are stored for the model. Defaults to False.
 
         """
-        self.negative_energy = negative_energy
+
+        # self.cost_function_signs allows for cost function to be flipped wrt to the standard Ising model
+        self.cost_function_signs = cost_function_signs
         self.J = J
         self.h = h
+        self.name = name 
         self.S = None
-        self.all_energies = None
         self.lowest_energy  = None
         self.num_spins = len(h)
         self.alpha = np.sqrt(self.num_spins) / np.sqrt( sum([J[i][j]**2 for i in range(self.num_spins) for j in range(i)]) + sum([h[j]**2 for j in range(self.num_spins)])  )
-        #print("self.alpha: "+str(self.alpha))
-        #print("self.J: "+str(self.J))
+
         
-        if name is None: 
-            self.name = 'JK_random'
-        else : self.name = name 
         
         #100 optional optional states to use for fair starting state between different simulations
-        if not no_inits:
+        if no_initial_states:
+            self.initial_state = []
+        else:
             self.initial_state = []
             for i in range(100): 
                 self.initial_state.append(''.join(str(i) for i in np.random.randint(0, 2, self.num_spins, dtype = int)))
 
-        
-    def change_J(self, J):
-        #added so I can change J post-initialisation 
-        self.J = J
-        self.alpha = np.sqrt(self.num_spins) / np.sqrt( sum([self.J[i][j]**2 for i in range(self.num_spins) for j in range(i)]) + sum([self.h[j]**2 for j in range(self.num_spins)])  )
-
-        
-    @property
-    def get_J(self):
-        return self.J
-    
-    @property
-    def get_h(self):
-        return self.h
-
-    # @property
-    def model_summary(self, plot= True) :
-        
-        print("=============================================")
-        print("            MODEL : "+str(self.name) )
-        print("=============================================")
-        
-        
-        print("Non-zero Interactions (J) : "+ str( int(np.count_nonzero(self.J) /2)) + ' / '+str( int( 0.5 * self.num_spins * (self.num_spins - 1))) )
-        print("Non-zero Bias (h) : "+ str( int(np.count_nonzero(self.h) )) + ' / ' + str( self.num_spins ) )
-        print("---------------------------------------------")
-
-        print("Average Interaction Strength <|J|> : ", np.mean(np.abs(self.J)))
-        print("Average Bias Strength <|h|>: ", np.mean(np.abs(self.h)))
-        print("alpha : ", self.alpha )
-    
-        print("---------------------------------------------")
 
 
-        # sns.set()
-        if plot:
-            plt.figure(figsize=(16,10))
-            sns.heatmap(self.J, square= True, annot= False, cbar= True)
-            
-    # def get_hamiltonian
-    def get_hamiltonian(self):
 
-        J = self.get_J; h = self.get_h
 
-        hamiltonian = Observable(self.num_spins)
+    def get_energy(self, state: str) -> float:
+        """ 
+        Returns the energy of a given state
 
-        for i in range (0, self.num_spins):
-
-            pstr = 'Z ' + str(i)
-            hamiltonian.add_operator(PauliOperator(pstr, coef= h[i]))
-
-            for j in range(0, i):
-
-                pstr = 'Z ' + str(i) + ' ' + 'Z ' + str(j)
-                hamiltonian.add_operator(PauliOperator(pstr, coef= J[i,j]))
-
-        return hamiltonian
-    
-    def get_energy(self, state: Union[str, np.array]) -> float:
-        """ Returns the energy of a given state
-
-            ARGS:
-            ----
-            state : configuration of spins for which the energy is required to be calculated.
-                    NOTE:  if input is an numpy array then it should only consist of bipolar values -> {+1, -1}
+        Args:
+        state (str) : Configuration of spins for which the energy is required to be calculated.
 
         """
-        if self.all_energies is None:    
-            energy = self.calc_an_energy(state)
+        if not isinstance(state,str):
+            raise TypeError(f"State must be a string, but got {type(state)}")
         
-        else:
-            
-            #if not isinstance(state, str):
-            #    state = np.array([-1 if elem == "-1" else 1 for elem in state])
-            try:
-                energy = self.all_energies[int(state,2)]   
-            except:        
-                state = ''.join(str(s) for s in state)
-                energy = self.all_energies[int(state,2)]
-        return energy
-            
-    def calc_an_energy(self,state):
 
+        energy = self.calc_an_energy(state)
         
-        if isinstance(state, list) or isinstance(state, type(np.array(0))):
+        return energy
+    
             
-            state = np.array(state, dtype = int)
-            state = "".join(str(s) for s in state)
-            if "-1" in state:
-                print("Oh you fucked it 1")
-            state = np.array([-1 if elem == "0" else 1 for elem in state])
-        elif isinstance(state, str):
-            if "-1" in state:
-                print("Oh you fucked it 2")
-            state = np.array([-1 if elem == "0" else 1 for elem in state])
-        #energy = 0.5 * np.dot(state.transpose(), self.J.dot(state)) + np.dot(
-        #            self.h.transpose(), state)
-        try:
-            #THIS ONLY WORKS IF THE INPUT IS NOT UPPER DIAGONAL.
-            energy = 0.5 * np.dot(state.transpose(), self.J.dot(state)) + np.dot(
-                        self.h.transpose(), state)
-            if self.negative_energy:
-                energy = - energy
-        except:
-            print("the weird error again. ")
-            print("state: ")
-            print(state)
-            print(type(state))
-            energy = 1000
+    def calc_an_energy(self,state:str) -> float:
+        """
+        Calculate the energy of a given state.
+        
+        This function computes the energy of a given state based on the Ising model.
+        The state is expected to be a string of "0"s and "1"s, which are converted to
+        -1 and 1 respectively for the calculation.
+        
+        Args:
+        state (str): A string representing the state, where each character is either "0" or "1".
+        
+        Returns
+        float: The calculated energy of the given state.
+        
+        Raises:
+        TypeError
+            If the input state is not a string.
+        """
+
+        if not isinstance(state, str):
+            raise TypeError(f"State must be a string, but got {type(state)}")
+        
+        
+        state = np.array([-1 if elem == "0" else 1 for elem in state])
+        
+        #THIS ONLY WORKS IF THE INPUT IS NOT UPPER DIAGONAL.
+        # self.cost_function_signs allows for cost function to be flipped wrt to the standard Ising model
+        energy = self.cost_function_signs[0]*0.5 * np.dot(state.transpose(), self.J.dot(state)) + self.cost_function_signs[1]* np.dot(
+                    self.h.transpose(), state)
+
 
         return energy
-        
-    def get_all_energies(self):
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    def get_all_energies(self) -> np.ndarray :
+        """
+        Calculate the energies for all possible spin states.
+        This method generates all possible spin states for the system, calculates the energy for each state,
+        and returns an array of these energies.
+        Returns:
+            np.ndarray: An array containing the energies of all possible spin states.
+        """
         self.S = [''.join(i) for i in itertools.product('01', repeat=self.num_spins)]
-        self.all_energies = np.zeros(len(self.S))
+        all_energies = np.zeros(len(self.S))
         for state in self.S:
-
-            self.all_energies[int(state,2)] = self.calc_an_energy(state)
+            all_energies[int(state,2)] = self.calc_an_energy(state)
+        return all_energies
             
             
-    def get_lowest_energies(self,num_states):
+    def get_lowest_energies(self,num_states:int) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Retrieve the lowest energy states and their degeneracies.
+        This method computes all possible energies and then finds the specified number
+        of lowest energy states along with their degeneracies. Note that this method 
+        is intended for small instances due to its brute-force nature, which is extremely 
+        memory intensive and slow.
+        Args:
+            num_states (int): The number of lowest energy states to retrieve.
+        Returns:
+            Two numpy arrays:
+                - The first array contains the lowest energy values.
+                - The second array contains the degeneracies of the corresponding energy values.
+        """
         #only to be used for small instances, it is just brute force so extremely memory intensive and slow
-        
-        if self.all_energies is None:    
-            self.get_all_energies()
+        all_energies = self.get_all_energies()
 
         #very slow (sorts whole array)  
-        self.lowest_energies, self.lowest_energy_degeneracy = self.find_lowest_values(self.all_energies, num_values=num_states)
+        self.lowest_energies, self.lowest_energy_degeneracy = self.find_lowest_values(all_energies, num_values=num_states)
 
         return self.lowest_energies, self.lowest_energy_degeneracy
     
-    def find_lowest_values(self, arr, num_values=5):
+    def find_lowest_values(self, arr: np.ndarray, num_values: int = 5):
+        """
+        Find the lowest unique values in an array and their degeneracies.
+
+        Args:
+            arr (np.ndarray): The input array from which to find the lowest values.
+            num_values (int, optional): The number of lowest unique values to find. Defaults to 5.
+
+        Returns:
+        tuple: A tuple containing two numpy arrays:
+            - lowest_values (np.ndarray): The lowest unique values in the array.
+            - degeneracy (np.ndarray): The counts of each of the lowest unique values.
+        """
         # Count the occurrences of each value
         unique_values, counts = np.unique(arr, return_counts=True)
         # Sort the unique values and counts by value
@@ -199,56 +223,75 @@ class IsingEnergyFunction:
         return lowest_values, degeneracy
     
     def get_lowest_energy(self):
+        """
+        Calculate and return the lowest energy from all possible energies.
+        This method uses a brute force approach to find the lowest energy, 
+        making it extremely memory intensive and slow. It is recommended 
+        to use this method only for small instances.
+        Returns:
+            float: The lowest energy value.
+        Notes:
+            If the lowest energy has already been calculated and stored 
+            in `self.lowest_energy`, it will return that value directly 
+            to save computation time.
+        """
+        
+        
         # Only to be used for small instances, it is just brute force so extremely memory intensive and slow
         if self.lowest_energy is not None:
             return self.lowest_energy
         else:
-            if self.all_energies is None:
-                self.get_all_energies()
+            all_energies = self.get_all_energies()
 
-
-        lowest_energy = np.min(self.all_energies)
+        lowest_energy = np.min(all_energies)
 
         return lowest_energy
 
     def get_boltzmann_factor(
-        self, state: Union[str, np.array], beta: float = 1.0
+        self, state: str, beta: float = 1.0
     ) -> float:
 
-        """ Get un-normalised boltzmann probability of a given state 
+        """ 
+        Get un-normalised boltzmann probability of a given state 
 
-            ARGS:
-            ----
-            state : configuration of spins for which probability is to be calculated 
-            beta : inverse temperature (1/T) at which the probability is to be calculated.
+        Args:
+            state (str): configuration of spins for which probability is to be calculated 
+            beta (float): inverse temperature (1/T) at which the probability is to be calculated.
         
+        Returns:
+            float corresponding to the un-normalised boltzmann probability of the given state.
         """
         E = self.get_energy(state)
-        #print("starts")
-        #print(E)
-        
-            
-        
         r = np.exp(-1 * beta * E, dtype = np.longdouble)
-        #print(r)
+
         return r
-        
-            
+
     
     def get_boltzmann_factor_from_energy(self, E, beta: float = 1.0
     ) -> float:
+
+        """
+        Get un-normalized Boltzmann probability for a given energy.
+
+        Args:
+            E (float): Energy for which the Boltzmann factor is to be calculated.
+            beta (float): Inverse temperature (1/T) at which the probability is to be calculated.
+
+        Returns:
+            float: The un-normalized Boltzmann probability for the given energy.
+        """
+        
         return np.exp(-1 * beta * E, dtype = np.longdouble)
     
-    from typing import List
-    def _update_J(self, new_param:float, index: Union[tuple, List]):
-
-        assert len(index) == 2
-        self.J[index[0], index[1]] = new_param
-        self.J[index[1], index[0]] = new_param
+            
+    @property
+    def get_J(self):
+        return self.J
     
-    def _update_h(self, new_param: float, index: int):
+    @property
+    def get_h(self):
+        return self.h
 
-        self.h[index] = new_param
 
 
 

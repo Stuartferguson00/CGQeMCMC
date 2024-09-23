@@ -1,9 +1,9 @@
-#!/usr/bin/env python3
 import sys
 import os
-dir = os.path.dirname(os.path.abspath(__file__))
-root_dir = os.path.dirname(os.path.dirname(dir))
-sys.path.insert(0, root_dir)
+
+# Add the parent directory to sys.path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from cgqemcmc.basic_utils import *
 import pickle
 import time as tme
@@ -47,7 +47,7 @@ def main(n_spins, temp, reps,n_hops):
     dir = os.path.dirname(os.path.abspath(__file__))
     os.makedirs(dir+'/results/'+t_str,exist_ok=True)
     
-    model_dir = dir+'/models_001/000.obj'
+    model_dir = dir+'/models/000.obj'
 
     results_dir = dir+'/results/'+t_str+'/oo_000_000.obj'
 
