@@ -18,7 +18,7 @@ from cgqemcmc.Model_Maker import Model_Maker
 # Once created, Models are pickled so they can be easily accessed later.
 # 
 
-n_spins = 16
+n_spins = 25
 
 gamma = (0.25,0.6)
 time = (2,20)

@@ -173,11 +173,11 @@ def get_results_dir(n_spins,results_dir, token):
 
 
 n_spins = 16 # size of system
-temp = float(1) # temperature of system to analyse
+temp = float(0.1) # temperature of system to analyse
 
 
 plot_first = True #whether to plot energy graph or not
-plot_individuals = False #whether to plot individual MC chains in energy plot
+plot_individuals = True #whether to plot individual MC chains in energy plot
     
 
 
@@ -346,8 +346,8 @@ print(Q_all_states[:,0])
 
 
 
-
-ax.plot([0,np.max(u_hops[0])+np.max(u_hops[0])/50],[avg_energy,avg_energy], color = "k", label = "Exact average energy")
+if  got_vals:
+    ax.plot([0,np.max(u_hops[0])+np.max(u_hops[0])/50],[avg_energy,avg_energy], color = "k", label = "Exact average energy")
 
 fig.suptitle("Thermalisation of MCMC for "+str(n_spins)+" spins")
 fig.supxlabel("Steps")
