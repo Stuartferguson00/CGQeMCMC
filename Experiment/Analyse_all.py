@@ -172,7 +172,7 @@ def get_results_dir(n_spins,results_dir, token):
 
 
 
-n_spins = 16 # size of system
+n_spins = 9 # size of system
 temp = float(1) # temperature of system to analyse
 
 
