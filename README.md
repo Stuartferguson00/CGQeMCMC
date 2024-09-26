@@ -15,7 +15,16 @@ An example experiment is given in the folder titled "MCMC", where a Markov Chain
 
 ### To recreate the results:
 
-Please bear in mind this is a code built for experimentation and does not have sophistocated error-catching capabilities. Likewise the example code analysis code is written for specific inputs.
+Initialise an energy model instance by calling *initialise_models.py*. Note that one can change the size of model and the number of models to return by changing the associated variables in the script. Models will be stored in Experiment/models
+
+To run instances of a (CG)QeMCMC, call the python script *Run_quant.py* and follow the input instructions.
+To run instances of a classical MCMC, call the python script *Run_class.py* and follow the input instructions.
+
+Any results will be stored in Experiment/results/\*temperature\*. The run scripts build on previous runs, so you can iteritively run more experiments by callind Run_quant.py which adds to the results file. Do not run experiments of different lengths (hops) as the anslysis script will not work.
+
+Any experiments can be analysed by calling *Analyse_all.py*. Experimental details can be changed in Analyse_all.py in order to show results from different simulations.
+
+Please bear in mind this is a code built for experimentation and does not have sophisticated error-catching capabilities. Likewise the example code analysis code is written for specific inputs.
 
 Also note that the above code currently uses simple cpu parallelisation to run multiple Markov chains concurrently, so running running code with multiple reps will impact the performance of your computer.
 
