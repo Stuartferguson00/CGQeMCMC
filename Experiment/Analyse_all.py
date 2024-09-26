@@ -173,11 +173,11 @@ def get_results_dir(n_spins,results_dir, token):
 
 
 n_spins = 16 # size of system
-temp = float(0.1) # temperature of system to analyse
+temp = float(1) # temperature of system to analyse
 
 
 plot_first = True #whether to plot energy graph or not
-plot_individuals = True #whether to plot individual MC chains in energy plot
+plot_individuals = False #whether to plot individual MC chains in energy plot
     
 
 
@@ -191,21 +191,29 @@ u_sampled = True
 sampling_interval_u = 10
 u_color = "orange"
 
+#multiple sample
 do_Q = True
 Q_sampled =   True
 sampling_interval_Q = 10
-Q_color = "purple"
+Q_color = "red"
 m_q = np.sqrt(n_spins) # number of groups is assumed to be sqrt(n)
 m_q_str = "000" if m_q/n_spins == 1 else f"{m_q/n_spins * 1000:03.0f}"
 
-do_Q_2 = False
+#no coarse graining 
+do_Q_2 = True
 Q_2_sampled =   True
 sampling_interval_Q_2 = 10
 Q_2_color = "blue"
 m_q_2 = n_spins
 m_q_2_str = "000" if m_q_2/n_spins == 1 else f"{m_q_2/n_spins * 1000:03.0f}"
 
-
+#no multiple sample
+do_Q_3 = False
+Q_3_sampled =   True
+sampling_interval_Q_3 = 10
+Q_3_color = "lightblue"
+m_q_3 = np.sqrt(n_spins)
+m_q_3_str = "000" if m_q_3/n_spins == 1 else f"{m_q_3/n_spins * 1000:03.0f}"
 
 
 
@@ -334,6 +342,15 @@ if do_Q_2:
     Q_2_hops = np.arange(0, len(Q_2_hops[0]) * sampling_interval_Q_2, sampling_interval_Q_2)
     Q_2_hops = np.tile(Q_2_hops, (len(Q_2_hops), 1))
     Q_2_full_hops, Q_2_full_energies = plot_energies(Q_2_all_energies, Q_2_hops, ax, "q_full_" + m_q_2_str, Q_2_color)
+    
+if do_Q_3:
+    Q_3_results_dir = get_results_dir(n_spins, results_dir, "q_single_samp_" + m_q_3_str)
+    Q_3_all_energies, Q_3_all_states, Q_3_hops = unpickle(Q_3_results_dir)
+    # Q_3_all_energies, Q_3_all_states, Q_3_hops = thin_stuff([Q_3_all_energies, Q_3_all_states, Q_3_hops], thin_Q_3)
+    
+    Q_3_hops = np.arange(0, len(Q_3_hops[0]) * sampling_interval_Q_3, sampling_interval_Q_3)
+    Q_3_hops = np.tile(Q_3_hops, (len(Q_3_hops), 1))
+    Q_3_full_hops, Q_3_full_energies = plot_energies(Q_3_all_energies, Q_3_hops, ax, "q_full_" + m_q_3_str, Q_3_color)
 
 
 
@@ -349,12 +366,10 @@ print(Q_all_states[:,0])
 if  got_vals:
     ax.plot([0,np.max(u_hops[0])+np.max(u_hops[0])/50],[avg_energy,avg_energy], color = "k", label = "Exact average energy")
 
-fig.suptitle("Thermalisation of MCMC for "+str(n_spins)+" spins")
+fig.suptitle("Thermalisation of MCMC for "+str(n_spins)+" spins and T = "+str(temp))
 fig.supxlabel("Steps")
 fig.supylabel("Energy")
 ax.set_xscale("log")
-ax.set_title("Full thermalisation")
-ax.set_title("Low energy region")
 ax.legend()
 plt.show()
 

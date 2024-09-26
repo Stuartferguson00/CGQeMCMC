@@ -18,14 +18,10 @@ from cgqemcmc.Model_Maker import Model_Maker
 # Once created, Models are pickled so they can be easily accessed later.
 # 
 
-n_spins = 25
-
-gamma = (0.25,0.6)
-time = (2,20)
+n_spins = 42
 
 
 reps = 1
-temp = 1
 
 dir = os.path.dirname(os.path.abspath(__file__))
 model_dir = dir+'/models/000.obj'
