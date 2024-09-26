@@ -9,32 +9,24 @@ The code is essentially built upon another repository: https://github.com/paflox
 An example experiment is given in the folder titled "MCMC", where a Markov Chain Monte Carlo algorithm is run for an example 9 spin instance. Classical "Uniform" and "local" update proposals are compared with a CGQeMCMC implimentationusing only 3 simulated qubits. Even though the number of qubits is quadratically reduced from the number requred by the original algorithm of Layden et al, we still see quantum speedup. The follwoing results can be viewed by running Analyse_all.py. See [Ferguson 2024] for details.
 
 
-![9_spin_mag_example](https://github.com/Stuartferguson00/CGQeMCMC/assets/99267485/0dba491f-92c6-40b6-833c-7e5af80286d9)
 
-![9_spin_E_example](https://github.com/Stuartferguson00/CGQeMCMC/assets/99267485/3623e7ca-b74e-4448-95dd-6d211dcee5b7)
+![9_spin_E_example](9_spin_T_1.png)
 
 
 ### To recreate the results:
-- Ensure the necessary python libraries are installed.
-- Delete the result files in results/1_0/
-- From terminal, run the python file: "Run_class.py" which will initalise classical Markov chains. Command line argument required are:
-  - n_spins: (int) Number of spins in system. (9 in given example) 
-  - temp: (float) Temperature of system. (1 in given example) 
-  - reps: (int) Number of markov chains to condider. (10 in given example)
-  - n_hops: (int) Length of chains to consider. (10000 in given example)
-- From terminal, run the python file: "Run_quant.py" which will initalise Quantum Markov chains Markov chain. Command line arguments required are:
-  - n_spins: (int) As above
-  - temp: (float)  As above
-  - reps: (int) As above
-  - n_hops: (int) As above
-  - mult_samp: (bool) Whether to use multiple groups in Coarse graining (True in given example)
-  - group_size: (int) Size of group to use in coarse graining (3 in given example)
-- Run Analyse_all.py to view results.
 
-Please bear in mind this is a code built for experimentation and does not have sophistocated error-catching capabilities. Likewise the example code analysis code is written for the specific inputs given above.
+Initialise an energy model instance by calling *initialise_models.py*. Note that one can change the size of model and the number of models to return by changing the associated variables in the script. Models will be stored in Experiment/models
+
+To run instances of a (CG)QeMCMC, call the python script *Run_quant.py* and follow the input instructions.
+To run instances of a classical MCMC, call the python script *Run_class.py* and follow the input instructions.
+
+Any results will be stored in Experiment/results/\*temperature\*. The run scripts build on previous runs, so you can iteritively run more experiments by callind Run_quant.py which adds to the results file. Do not run experiments of different lengths (hops) as the anslysis script will not work.
+
+Any experiments can be analysed by calling *Analyse_all.py*. Experimental details can be changed in Analyse_all.py in order to show results from different simulations.
+
+Please bear in mind this is a code built for experimentation and does not have sophisticated error-catching capabilities. Likewise the example code analysis code is written for specific inputs.
+
 Also note that the above code currently uses simple cpu parallelisation to run multiple Markov chains concurrently, so running running code with multiple reps will impact the performance of your computer.
-
-Although the above experiment shows actual Markov chains, spectral gap is also analysed in the paper, and the cgqemcmc directory contains the crucial functions to find the spectral gap of an Ising model for a given proposal strategy.
 
 The quantum simulator used is Qulacs.
 

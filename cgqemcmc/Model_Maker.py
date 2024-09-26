@@ -7,10 +7,10 @@ import itertools
 class Model_Maker:
     # Class to control the initialisation of an energy model. 
     # It might seem a bit convoluted, but will allow for more complex models to be made in future.
-    def __init__(self, n_spins, model_type, name, J = None, h = None, negative_energy = True):
+    def __init__(self, n_spins:int, model_type:str, name:str, J: np.ndarray = None, h: np.ndarray = None, cost_function_signs: list = [-1,-1]):
         self.name = name
         self.n_spins = n_spins
-        self.negative_energy = negative_energy
+        self.cost_function_signs = cost_function_signs
         if type(model_type) is not str:
             print("model type must be a string representing the model you request")
         elif model_type == "Fully Connected Ising":
@@ -20,7 +20,7 @@ class Model_Maker:
         elif model_type == "input_J":
             self.J = J
             self.h = h
-            self.model = IsingEnergyFunction(self.J, self.h, name=self.name,negative_energy = self.negative_energy)
+            self.model = IsingEnergyFunction(self.J, self.h, name=self.name, cost_function_signs = self.cost_function_signs)
 
     def make_fully_connected_Ising(self):
         shape_of_J = (self.n_spins, self.n_spins)
@@ -31,21 +31,20 @@ class Model_Maker:
         
         h = np.round(np.random.normal(0, 1, self.n_spins), decimals=4)
 
-        self.model = IsingEnergyFunction(J, h, name=self.name)
+        self.model = IsingEnergyFunction(J, h, name=self.name, cost_function_signs = self.cost_function_signs)
         
     def make_1D_Ising(self):
+        print("I have not analysed 1d ising models, so double check function 'make_1D_Ising' before using")
         h = np.round(np.random.normal(0, 1, self.n_spins), decimals=4)
         shape_of_J = (self.n_spins, self.n_spins)
         J = np.zeros(shape_of_J)
-        self.model = IsingEnergyFunction(J, h, name=self.name)
+        
         
         J_rand = np.round(np.random.normal(0, 1, shape_of_J), decimals=4)
         J_tril = np.tril(J_rand, -1)
         J_triu = J_tril.transpose()
         J_rand = J_tril + J_triu
 
-        if self.model.S is None:
-            self.model.S = [''.join(i) for i in itertools.product('01',repeat=self.n_spins)]
 
 
         #loop throgh and find the difference in bitstrings.
@@ -56,7 +55,6 @@ class Model_Maker:
                     J[i, j] = 1
 
         J = J * J_rand
+        self.model = IsingEnergyFunction(J, h, name=self.name, cost_function_signs = self.cost_function_signs)
         
-        self.model.change_J(J)
-        return J
         

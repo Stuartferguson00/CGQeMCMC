@@ -1,11 +1,10 @@
+# The above code is importing the `sys` module in Python. The `sys` module provides access to some
+# variables used or maintained by the interpreter and to functions that interact with the interpreter.
 import sys
 import os
-dir = os.path.dirname(os.path.abspath(__file__))
-root_dir = os.path.dirname(os.path.dirname(dir))
-sys.path.insert(0, root_dir)
-
+# Add the parent directory to sys.path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import matplotlib.pyplot as plt
-from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from cgqemcmc.basic_utils import *
 import itertools
 from cgqemcmc.energy_models import IsingEnergyFunction, Exact_Sampling
@@ -14,32 +13,6 @@ import gc
 import scipy
 import time as tme
 import os
-
-
-
-
-n_spins = 9 # size of system
-m_q = np.sqrt(n_spins) # number of groups is assumed to be sqrt(n)
-temp = float(1) # temperature of system to analyse
-
-
-plot_first = True #whether to plot energy graph or not
-plot_individuals = False #whether to plot individual MC chains in energy plot
-    
-
-
-
-
-t_str = str(temp)
-t_str = t_str.replace(".", "_")
-if len(t_str)>6:
-    t_str = t_str[:6]
-
-
-
-model_dir = dir+'/models_001/000.obj'
-results_dir = dir+'/results/'+t_str+'/oo_000_000.obj'
-Q_results_dir = dir+'/results/'+t_str+'/oo_000_000.obj'
 
 
 
@@ -80,26 +53,196 @@ def fill_missing_values(x, y, x_min, x_max):
 
 
 
+def unpickle(results_dir):
+    gc.disable()
+    
+    fileObj = open(results_dir, 'rb')
+    results_list = pickle.load(fileObj)
+    fileObj.close()
+    gc.enable()
+
+    all_energies = []
+    all_states = []
+    hops = []
+
+    for i in range(len(results_list)):
+        
+        MCMC_chain_obj = results_list[i]
+        energies = MCMC_chain_obj.get_current_energy_array()
+        positions = MCMC_chain_obj.get_pos_array()
+        states = MCMC_chain_obj.get_current_state_array()
+        
+        
+        all_energies.append(energies)
+        all_states.append(states)
+        hops.append(positions)
+        
+        #MCMC_chain_obj.get_accepted_energies()
+        
+        #accepted_energies = MCMC_chain_obj.accepted_energies
+        #accepted_positions = MCMC_chain_obj.accepted_positions
+        #accepted_states = MCMC_chain_obj.accepted_states
+        
+        #accepted_energies = np.array(accepted_energies)
+        #accepted_states = np.array(accepted_states)
+        #accepted_positions = np.array(accepted_positions)
+
+        
+        #all_energies.append(accepted_energies)
+        #all_states.append(accepted_states)
+        #hops.append(accepted_positions)
+        
+        
+    return np.array(all_energies), np.array(all_states), np.array(hops)
 
 
 
+def plot_energies(all_energies, hops, ax, label, color):
+    # Assumes the data is from sampling a markov chain
 
+    full_energies = []
+    for i in range(len(all_energies)):
+        full_hops = hops[i]
+        full_energies_ = all_energies[i]
+        full_energies.append(full_energies_)
+        
+        if plot_individuals:
+            if i >0:
+                label_ = None
+            else:
+                label_ = label +" individual"
 
-#change file names for easy file organisation
-l_model_dir = list(model_dir)
-if n_spins >=100:
-    l_model_dir[-7] = str(n_spins)[0]
-    l_model_dir[-6] = str(n_spins)[1]
-    l_model_dir[-5] = str(n_spins)[2]
+            ax.plot(full_hops, full_energies_, label = label_, color = color, alpha = 0.3)
+            
+            pass
+        
+    
+            
+    full_hops= np.array(full_hops)
+        
+    full_energies = np.array(full_energies)
+    ax.plot(full_hops, np.mean(full_energies,axis = 0), label = label, color = color)
 
     
-elif n_spins >=10:
-    l_model_dir[-6] = str(n_spins)[0]
-    l_model_dir[-5] = str(n_spins)[1]
-else:
-    l_model_dir[-5] = str(n_spins)
+    full_hops = np.array(full_hops)
+    full_energies = np.array(full_energies)
 
-model_dir = ''.join(l_model_dir)
+    
+    return full_hops, full_energies
+
+
+
+
+def get_results_dir(n_spins,results_dir, token):
+
+
+    #change model file names for easy file organisation
+    str_nspins = str(n_spins).zfill(3)
+    results_dir = results_dir + str_nspins + '_'+ token + '.obj'
+
+
+    return results_dir
+
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+n_spins = 9 # size of system
+temp = float(1) # temperature of system to analyse
+
+
+plot_first = True #whether to plot energy graph or not
+plot_individuals = False #whether to plot individual MC chains in energy plot
+    
+
+
+do_local = True
+l_sampled = True
+sampling_interval_l = 10
+l_color = "green"
+
+do_uniform = True
+u_sampled = True
+sampling_interval_u = 10
+u_color = "orange"
+
+#multiple sample
+do_Q = True
+Q_sampled =   True
+sampling_interval_Q = 10
+Q_color = "red"
+m_q = np.sqrt(n_spins) # number of groups is assumed to be sqrt(n)
+m_q_str = "000" if m_q/n_spins == 1 else f"{m_q/n_spins * 1000:03.0f}"
+
+#no coarse graining 
+do_Q_2 = True
+Q_2_sampled =   True
+sampling_interval_Q_2 = 10
+Q_2_color = "blue"
+m_q_2 = n_spins
+m_q_2_str = "000" if m_q_2/n_spins == 1 else f"{m_q_2/n_spins * 1000:03.0f}"
+
+#no multiple sample
+do_Q_3 = False
+Q_3_sampled =   True
+sampling_interval_Q_3 = 10
+Q_3_color = "lightblue"
+m_q_3 = np.sqrt(n_spins)
+m_q_3_str = "000" if m_q_3/n_spins == 1 else f"{m_q_3/n_spins * 1000:03.0f}"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+t_str = str(temp)
+t_str = t_str.replace(".", "_")
+if len(t_str)>6:
+    t_str = t_str[:6]
+    
+str_nspins = str(n_spins).zfill(3)
+
+home = os.path.dirname(os.path.abspath(__file__))
+
+
+model_dir = home+'/models/' + str_nspins + '.obj'
+results_dir = home+'/results/'+t_str+"/"
+
 
 
 
@@ -108,6 +251,7 @@ model_dir = ''.join(l_model_dir)
 fileObj = open(model_dir, 'rb')
 model_list = pickle.load(fileObj)
 fileObj.close()
+
 if len(model_list) == 1:
     m_l = []
     for i in range(500):
@@ -128,20 +272,6 @@ if n_spins < 20:
     lowest_energies = np.array(lowest_energies)
     highest_prob_states = min_s_mu*100
     
-
-    #the variable required for spec gap thermalisation equation
-    min_s_mu_s = np.array(list(boltz_dict.values()))[-1]
-
-
-    minima_mags = []
-    for i in range(len(min_s_mu)):
-        minima_mags.append(magnetization_of_state(min_s_bitstrings[i]))
-
-    mag_dict = dict_magnetization_of_all_states(list(boltz_dict.keys()))
-    exact_mag = np.sum(np.array(list(mag_dict.values()))*np.array(list(boltz_dict.values())))
-
-    second_exact_mag =  np.sum(np.array(list(mag_dict.values()))[2:]*np.array(list(boltz_dict.values()))[2:])
-
     got_vals = True
     
 
@@ -152,26 +282,8 @@ else:
 
             
 if  got_vals:
-    print(" ")
-    print("exact mag is: "+str(exact_mag))
-    np.set_printoptions(suppress=True,precision=2)
-    print(" ")
-    print("highest_prob_states")
-    print(highest_prob_states)
-    np.set_printoptions(suppress=True,precision=6)
-    print(" ")
-    print("lowest_energies")
-    print(lowest_energies)
-    print(" ")
-    print("minima_mags")
-    print(minima_mags)
-    
-    
     avg_energy = np.sum(lowest_energies*highest_prob_states/100)
-    print(" ")
-    print("avg_energy")
-    print(avg_energy)
-    
+
     print(" ")
     print("The following is the sum of probabilities, if it is much lower than 100, avg_energy will be innacurate.")
     print("In this sense, the average energy and magnetisation calculated here is only accurate for lower temperatures")
@@ -183,25 +295,106 @@ if  got_vals:
 
 m = model_list[0]
 
+
+
+
+
+
+
+fig, ax = plt.subplots(1,1)#,figsize=(8, 8))
+
+
+if do_local:
+    l_results_dir = get_results_dir(n_spins,results_dir, "local")
+    l_all_energies, l_all_states, l_hops = unpickle(l_results_dir)
+    #l_all_energies, l_all_states, l_hops = thin_stuff([l_all_energies, l_all_states, l_hops],thin_l) 
+    
+    
+    
+    l_hops = np.arange(0, len(l_hops[0]) * sampling_interval_l, sampling_interval_l)
+    l_hops = np.tile(l_hops, (len(l_hops), 1))
+    l_full_hops, l_full_energies = plot_energies(l_all_energies, l_hops, ax, "local", l_color)
+    
+if do_uniform:
+
+    u_results_dir = get_results_dir(n_spins, results_dir, "uniform")
+    u_all_energies, u_all_states, u_hops = unpickle(u_results_dir)
+    #u_all_energies, u_all_states, u_hops = thin_stuff([u_all_energies, u_all_states, u_hops], thin_u)
+    
+    u_hops = np.arange(0, len(u_hops[0]) * sampling_interval_u, sampling_interval_u)
+    u_hops = np.tile(u_hops, (len(u_hops), 1))
+    u_full_hops, u_full_energies = plot_energies(u_all_energies, u_hops, ax, "uniform", u_color)
+    
+if do_Q:
+    Q_results_dir = get_results_dir(n_spins, results_dir, "q_mult_samp_"+m_q_str)
+    Q_all_energies, Q_all_states, Q_hops = unpickle(Q_results_dir)
+    #Q_all_energies, Q_all_states, Q_hops = thin_stuff([Q_all_energies, Q_all_states, Q_hops], thin_Q)
+    
+    Q_hops = np.arange(0, len(Q_hops[0]) * sampling_interval_Q, sampling_interval_Q)
+    Q_hops = np.tile(Q_hops, (len(Q_hops), 1))
+    Q_full_hops, Q_full_energies = plot_energies(Q_all_energies, Q_hops, ax, "q_mult_samp_"+m_q_str, Q_color)
+    
+if do_Q_2:
+    Q_2_results_dir = get_results_dir(n_spins, results_dir, "q_full_" + m_q_2_str)
+    Q_2_all_energies, Q_2_all_states, Q_2_hops = unpickle(Q_2_results_dir)
+    # Q_2_all_energies, Q_2_all_states, Q_2_hops = thin_stuff([Q_2_all_energies, Q_2_all_states, Q_2_hops], thin_Q_2)
+    
+    Q_2_hops = np.arange(0, len(Q_2_hops[0]) * sampling_interval_Q_2, sampling_interval_Q_2)
+    Q_2_hops = np.tile(Q_2_hops, (len(Q_2_hops), 1))
+    Q_2_full_hops, Q_2_full_energies = plot_energies(Q_2_all_energies, Q_2_hops, ax, "q_full_" + m_q_2_str, Q_2_color)
+    
+if do_Q_3:
+    Q_3_results_dir = get_results_dir(n_spins, results_dir, "q_single_samp_" + m_q_3_str)
+    Q_3_all_energies, Q_3_all_states, Q_3_hops = unpickle(Q_3_results_dir)
+    # Q_3_all_energies, Q_3_all_states, Q_3_hops = thin_stuff([Q_3_all_energies, Q_3_all_states, Q_3_hops], thin_Q_3)
+    
+    Q_3_hops = np.arange(0, len(Q_3_hops[0]) * sampling_interval_Q_3, sampling_interval_Q_3)
+    Q_3_hops = np.tile(Q_3_hops, (len(Q_3_hops), 1))
+    Q_3_full_hops, Q_3_full_energies = plot_energies(Q_3_all_energies, Q_3_hops, ax, "q_full_" + m_q_3_str, Q_3_color)
+
+
+
+
+
+
+print(l_all_states[:,0])
+print(u_all_states[:,0])
+print(Q_all_states[:,0])
+
+
+
+if  got_vals:
+    ax.plot([0,np.max(u_hops[0])+np.max(u_hops[0])/50],[avg_energy,avg_energy], color = "k", label = "Exact average energy")
+
+fig.suptitle("Thermalisation of MCMC for "+str(n_spins)+" spins and T = "+str(temp))
+fig.supxlabel("Steps")
+fig.supylabel("Energy")
+ax.set_xscale("log")
+ax.legend()
+plt.show()
+
+
+
+
+
+
+
+
+
+
+
+
+"""
+
+
+
+
+
+
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 #Uniform
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-l_results_dir = list(results_dir)
-if n_spins >=100:
-    l_results_dir[-11] = str(n_spins)[0]
-    l_results_dir[-10] = str(n_spins)[1]
-    l_results_dir[-9] = str(n_spins)[2]
-elif n_spins >=10:
-    l_results_dir[-10] = str(n_spins)[0]
-    l_results_dir[-9] = str(n_spins)[1]
-else:
-    l_results_dir[-9] = str(n_spins)
-
-l_results_dir[-14] = "u"
-#l_results_dir[-12] = str(l)[1]
-    
-results_dir = ''.join(l_results_dir)
 
 
 try:
@@ -228,9 +421,7 @@ u_all_energies_l = []
 u_all_states_l = []
 u_hops = []
 for i in range(len(results_list)):
-    #u_all_energies_l.append(results_list[i].get_current_energy_array())
-    #u_all_states_l.append(results_list[i].get_list_markov_chain())
-    
+
     accepted_energies, accepted_positions, accepted_states = results_list[i]
     u_all_energies_l.append(accepted_energies)
     u_hops.append(accepted_positions)
@@ -241,11 +432,6 @@ for i in range(len(results_list)):
 fig, ax = plt.subplots(1,2)#,figsize=(8, 8))
 
 
-#u_hops = np.arange(0,len(u_all_energies_l[0]),1)
-#ax.plot(u_hops, np.mean(np.array(u_all_energies_l),axis = 0), label = "uniform", color = "orange")
-
-
-    
     
 u_full_energies = []
 for i in range(len(u_hops)):
@@ -258,6 +444,8 @@ for i in range(len(u_hops)):
         pass
 u_full_hops= np.array(u_full_hops)
 u_full_energies = np.array(u_full_energies)
+
+
 ax[0].plot(u_full_hops, np.mean(u_full_energies,axis = 0), label = "Uniform", color = "orange")
 ax[1].plot(u_full_hops, np.mean(u_full_energies,axis = 0), label = "Uniform", color = "orange")
 
@@ -278,7 +466,6 @@ results_dir = ''.join(l_results_dir)
 l_results_dir = list(results_dir)
 
 l_results_dir[-14] = "l"
-#l_results_dir[-12] = "l"
     
 results_dir = ''.join(l_results_dir)
 
@@ -402,9 +589,11 @@ Q_results_dir = ''.join(l_results_dir)
 
 try:
     gc.disable()
+    print(Q_results_dir)
     fileObj = open(Q_results_dir, 'rb')
     results_list = pickle.load(fileObj)
     fileObj.close()
+    
     gc.enable()
 
     Q_all_energies_l = []
@@ -727,3 +916,4 @@ if n_spins < 20 or got_vals:
 
 plt.legend()
 plt.show()
+"""

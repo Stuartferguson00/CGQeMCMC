@@ -1,9 +1,10 @@
-#!/usr/bin/env python3
+
 import sys
 import os
-dir = os.path.dirname(os.path.abspath(__file__))
-root_dir = os.path.dirname(os.path.dirname(dir))
-sys.path.insert(0, root_dir)
+
+# Add the parent home to sys.path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from cgqemcmc.basic_utils import *
 import pickle
 import time as tme
@@ -12,7 +13,7 @@ from cgqemcmc.qulacs_CGQeMCMC import MCMC_qulacs
 import joblib
 
 
-def do_quantum_MCMC(i, last_done, multiple_sample, m_q, temp, time, gamma, n_hops, model_list, n_spins ):
+def do_quantum_MCMC(i, last_done, multiple_sample, m_q, temp, time, gamma, n_hops, model_list, n_spins, sample_frequency ):
     # function to do a single quantum MCMC
     t = tme.time()
     if last_done +i > len(model_list)-1:
@@ -34,18 +35,24 @@ def do_quantum_MCMC(i, last_done, multiple_sample, m_q, temp, time, gamma, n_hop
         MCMC = MCMC_qulacs(m, gamma, time, temp, max_qubits = int(m_q), CG_sample_number = CG_sample_number)
 
         
-        output = MCMC.run(n_hops)
-
-        thin_output = thin_MCMC_chain(output)
+        output = MCMC.run(n_hops, initial_state=m.initial_state[last_done +i], sample_frequency=sample_frequency)
+        #output = thin_MCMC_chain(output)# just gets accepted energies states etc.
         t = tme.time()-t
         
         print("time taken by thread "+str(i) +"vis "+str(t))
         
-        return thin_output
+        return output
 
 
 
-def main(n_spins, temp, reps,n_hops,multiple_sample, m_q):
+def main(n_spins, temp, reps,n_hops,multiple_sample, m_q,sample_frequency):
+    
+    if m_q == n_spins:
+        proposal = "q_full"
+    elif multiple_sample:
+        proposal = "q_mult_samp"
+    else:
+        proposal = "q_single_samp"
     
     
     # get temperature string
@@ -56,35 +63,27 @@ def main(n_spins, temp, reps,n_hops,multiple_sample, m_q):
     
     print("temperature is: "+ t_str)
 
-    dir = os.path.dirname(os.path.abspath(__file__))
-    os.makedirs(dir+'/results/'+t_str,exist_ok=True)
+    home = os.path.dirname(os.path.abspath(__file__))
+    os.makedirs(home+'/results/'+t_str,exist_ok=True)
     
     
-    model_dir = dir+'/models_001/000.obj'
+    model_dir = home+'/models/'
+    Q_results_dir = home+'/results/'+t_str+"/"
 
 
+    m_q_str = "000" if m_q/n_spins == 1 else f"{m_q/n_spins * 1000:03.0f}"
+
+    #change model file names for easy file organisation
+    str_nspins = str(n_spins).zfill(3)
+    model_dir = model_dir + str_nspins + '.obj'
+    Q_results_dir = Q_results_dir + str_nspins + '_'+ proposal + "_" + m_q_str + '.obj'
 
 
-    Q_results_dir = dir+'/results/'+t_str+'/oo_000_000.obj'
-    
 
     
     gamma = (0.25,0.6)
     time = (2,20)
 
-
-    #change model file names for easy file organisation
-    l_model_dir = list(model_dir)
-    if n_spins >=100:
-        l_model_dir[-7] = str(n_spins)[0]
-        l_model_dir[-6] = str(n_spins)[1]
-        l_model_dir[-5] = str(n_spins)[2]
-    elif n_spins >=10:
-        l_model_dir[-6] = str(n_spins)[0]
-        l_model_dir[-5] = str(n_spins)[1]
-    else:
-        l_model_dir[-5] = str(n_spins)
-    model_dir = ''.join(l_model_dir)
 
 
     fileObj = open(model_dir, 'rb')
@@ -106,44 +105,6 @@ def main(n_spins, temp, reps,n_hops,multiple_sample, m_q):
     # Quantum-enhanced MCMC
     #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    # Correctly label the output file
-    l_results_dir = list(Q_results_dir)
-    
-    if n_spins >=100:
-        l_results_dir[-11] = str(n_spins)[0]
-        l_results_dir[-10] = str(n_spins)[1]
-        l_results_dir[-9] = str(n_spins)[2]
-    elif n_spins >=10:
-        l_results_dir[-10] = str(n_spins)[0]
-        l_results_dir[-9] = str(n_spins)[1]
-    else:
-        l_results_dir[-9] = str(n_spins)
-    results_dir = ''.join(l_results_dir)
-
-    l_results_dir = list(results_dir)
-
-    l_results_dir[-14] = "l"
-        
-    Q_results_dir = ''.join(l_results_dir)
-
-
-    # Add fraction corresponding to coarse graining to filename
-    l_results_dir = list(Q_results_dir)
-    
-    l_results_dir[-7] = str(m_q/n_spins)[2]
-    try:
-        l_results_dir[-6] = str(m_q/n_spins)[3]
-    except:
-        l_results_dir[-6] = str(0)
-    try:
-        l_results_dir[-5] = str(m_q/n_spins)[4]
-    except:
-        l_results_dir[-5] = str(0)
-    
-    l_results_dir[-14] = "r"
-    l_results_dir[-13] = "l"
-        
-    Q_results_dir = ''.join(l_results_dir)
 
     
     
@@ -152,15 +113,14 @@ def main(n_spins, temp, reps,n_hops,multiple_sample, m_q):
         fileObj = open(Q_results_dir, 'rb')
         result_list = pickle.load(fileObj)
         fileObj.close()
-        last_done = len(result_list)-1
+        last_done = len(result_list)
 
     except:
         #if no previous data, start from start
         last_done = 0
         result_list = []
 
-    
-        
+
         
     print("The last model that was done for this experiment:")
     print(last_done)
@@ -172,8 +132,11 @@ def main(n_spins, temp, reps,n_hops,multiple_sample, m_q):
     
     # parallelise and time computation
     t_1  = tme.time()
-    result_list = joblib.Parallel(n_jobs=reps)(joblib.delayed(do_quantum_MCMC)(i,last_done,multiple_sample,m_q,temp,time,gamma,n_hops,model_list,n_spins) for i in range(0,reps))
+    result_list_ = joblib.Parallel(n_jobs=reps)(joblib.delayed(do_quantum_MCMC)(i,last_done,multiple_sample,m_q,temp,time,gamma,n_hops,model_list,n_spins,sample_frequency) for i in range(0,reps))
     t_1 = tme.time()-t_1
+    
+    for r in result_list_:
+        result_list.append(r)
     
     print("total time is "+str(t_1))
     fileObj = open(Q_results_dir, 'wb')
@@ -187,25 +150,23 @@ if __name__ == "__main__":
  
     # total arguments
     n = len(sys.argv)
-    if n != 7:
+    if n != 8:
         print("Invalid arguments. Required arguments are: ")
-        print("n_spins(int) temp(float) reps(int) n_hops(int) mult_samp(bool) group_size(int)")
+        print("n_spins(int) temp(float) reps(int) n_hops(int) mult_samp(bool) group_size(int) sample_frequency(int)")
         quit()
     args = []
     for i in range(1, n):
-        if i ==1 or i ==3 or i ==4 or i ==6:
-            print(sys.argv[i])
+        if i ==1 or i ==3 or i ==4 or i ==6 or i==7:
             args.append(int(sys.argv[i]))
         if i ==2:
             args.append(float(sys.argv[i]))
         if i ==5:
-            args.append(bool(sys.argv[i]))
+            boolean_value = str(sys.argv[i]).lower() == "true"
+            args.append(boolean_value)
         
         
 
-    
-
-    main(args[0],args[1],args[2], args[3], args[4], args[5])
+    main(args[0],args[1],args[2], args[3], args[4], args[5], args[6])
 
 
 

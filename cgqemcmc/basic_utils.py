@@ -1,8 +1,4 @@
-###########################################################################################
-## IMPORTS ##
-###########################################################################################
 
-## basic imports ##
 import numpy as np
 import pandas as pd
 
@@ -16,36 +12,6 @@ from dataclasses import dataclass
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 import matplotlib.colors as mcolors
-
-## qiskit imports ##
-#from qiskit import Aer
-# from qiskit import (  # , InstructionSet
-#     IBMQ,
-#     Aer,
-#     ClassicalRegister,
-#     QuantumCircuit,
-#     QuantumRegister,
-#     quantum_info,
-# )
-# from qiskit.algorithms import *
-# from qiskit.circuit.library import *
-# from qiskit.circuit.library import RXGate, RZGate, RZZGate
-# from qiskit.circuit.quantumregister import Qubit
-# from qiskit.extensions import HamiltonianGate, UnitaryGate
-# from qiskit.quantum_info import Pauli, Statevector, partial_trace, state_fidelity
-# from qiskit.utils import QuantumInstance
-# from qiskit.visualization import (
-#     plot_bloch_multivector,
-#     plot_bloch_vector,
-#     plot_histogram,
-#     plot_state_qsphere,
-# )
-
-## qiskit-backends ##
-#qsm = Aer.get_backend("qasm_simulator")
-#stv = Aer.get_backend("statevector_simulator")
-#aer = Aer.get_backend("aer_simulator")
-
 
 
 
@@ -103,6 +69,10 @@ class MCMCChain:
         for state in self._states_accepted:
             self.accepted_energies.append(state.energy)
             self.accepted_positions.append(state.position)
+        
+        self.accepted_positions = np.array(self.accepted_positions)
+        self.accepted_energies = np.array(self.accepted_energies)
+        
         return self.accepted_energies, self.accepted_positions
     
     def get_current_energy_array(self):
@@ -116,18 +86,31 @@ class MCMCChain:
                 current_energy_array.append(state.energy)
             else:
                 current_energy_array.append(current_energy_array[-1])
-        return current_energy_array
+        return np.array(current_energy_array)
     
     
     def get_pos_array(self):
         #returns the array of current pos across the entire number of hops
-        #ie returns the last accepted energy
         #Useful for plotting etc
         
         pos_array = []
         for state in self._states:
             pos_array.append(state.position)
-        return pos_array
+        return np.array(pos_array)
+    
+    def get_current_state_array(self):
+        #returns the array of current state across the entire number of hops
+        #ie returns the last accepted state
+        #Useful for plotting etc
+        
+        current_state_array = []
+        for state in self._states:
+            if state.accepted:
+                current_state_array.append(state.bitstring)
+            else:
+                current_state_array.append(current_state_array[-1])
+        return np.array(current_state_array)
+    
                 
     def get_all_energies(self):
         self.energies = []
