@@ -99,7 +99,7 @@ class MCMC_Classical:
 
         
         # Randomly choose which spin to flip
-        choice = np.random.randint(0,self.n_spins-1)
+        choice = np.random.randint(0,self.n_spins)
 
         # Flip the chosen spin
         c_s = list(current_state_bitstring)

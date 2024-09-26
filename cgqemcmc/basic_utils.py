@@ -69,6 +69,10 @@ class MCMCChain:
         for state in self._states_accepted:
             self.accepted_energies.append(state.energy)
             self.accepted_positions.append(state.position)
+        
+        self.accepted_positions = np.array(self.accepted_positions)
+        self.accepted_energies = np.array(self.accepted_energies)
+        
         return self.accepted_energies, self.accepted_positions
     
     def get_current_energy_array(self):
@@ -82,18 +86,31 @@ class MCMCChain:
                 current_energy_array.append(state.energy)
             else:
                 current_energy_array.append(current_energy_array[-1])
-        return current_energy_array
+        return np.array(current_energy_array)
     
     
     def get_pos_array(self):
         #returns the array of current pos across the entire number of hops
-        #ie returns the last accepted energy
         #Useful for plotting etc
         
         pos_array = []
         for state in self._states:
             pos_array.append(state.position)
-        return pos_array
+        return np.array(pos_array)
+    
+    def get_current_state_array(self):
+        #returns the array of current state across the entire number of hops
+        #ie returns the last accepted state
+        #Useful for plotting etc
+        
+        current_state_array = []
+        for state in self._states:
+            if state.accepted:
+                current_state_array.append(state.bitstring)
+            else:
+                current_state_array.append(current_state_array[-1])
+        return np.array(current_state_array)
+    
                 
     def get_all_energies(self):
         self.energies = []

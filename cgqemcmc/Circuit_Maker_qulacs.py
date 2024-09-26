@@ -57,8 +57,19 @@ class Circuit_Maker:
         self.time = time
         self.gamma = gamma
         self.model = model
-        self.h = self.model.h
-        self.J = self.model.J
+        
+        # To fix sign issues
+        # Very helpful when using different forms of Ising models
+        if self.model.cost_function_signs[0] == 1:
+            self.h = -self.model.h
+        else:
+            self.h = self.model.h
+        if self.model.cost_function_signs[1] == 1:
+            self.J = -self.model.J
+        else:
+            self.J = self.model.J
+            
+            
         self.delta_time = 0.8
         self.n_spins = model.num_spins   
         self.alpha = model.alpha

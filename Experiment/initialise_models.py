@@ -18,7 +18,7 @@ from cgqemcmc.Model_Maker import Model_Maker
 # Once created, Models are pickled so they can be easily accessed later.
 # 
 
-n_spins = 9
+n_spins = 16
 
 gamma = (0.25,0.6)
 time = (2,20)
@@ -49,7 +49,7 @@ model_dir = ''.join(l_model_dir)
 
 models = []
 for i in tqdm(range(0,reps)):
-    MK = Model_Maker(n_spins, "Fully Connected Ising", str(n_spins) +" number: " +str(i))
+    MK = Model_Maker(n_spins, "Fully Connected Ising", str(n_spins) +" number: " +str(i), cost_function_signs = [-1,-1])
     model = MK.model
     models.append(model)
     

@@ -22,6 +22,7 @@ class MCMC_qulacs:
     """
     
     def __init__(self, model, gamma, time, temp, max_qubits=None, CG_sample_number=1, naive=False, delta_time = 0.8):
+        #havent done type hinting yet
         """
         Initializes an instance of the CGQeMCMC class.
 
@@ -92,9 +93,9 @@ class MCMC_qulacs:
 
         # Either get a random state or use initial state given
         if initial_state is None:
-            initial_state = MCMCState(get_random_state(self.n_spins), accepted=True)
+            initial_state = MCMCState(get_random_state(self.n_spins), accepted=True, pos = 0)
         else:
-            initial_state = MCMCState(initial_state, accepted=True)
+            initial_state = MCMCState(initial_state, accepted=True, pos = 0)
         
         #set initial state
         current_state: MCMCState = initial_state
@@ -148,7 +149,7 @@ class MCMC_qulacs:
         str: The next state s_prime.
         """
         # Should probably type check time and gamma in init not here 
-        if type(self.gamma) is float:
+        if type(self.gamma) is float or type(self.gamma) is int:
             g = self.gamma
         elif type(self.gamma) is tuple:
             g = np.round(np.random.uniform(low= min(self.gamma), high = max(self.gamma),size = 1), decimals=6)
@@ -203,7 +204,7 @@ class MCMC_qulacs:
         partial_h = np.delete(self.model.h, non_choices, axis=0)
 
         # define new model post coarse-graining
-        partial_model = IsingEnergyFunction(partial_J, partial_h, name="partial model")
+        partial_model = IsingEnergyFunction(partial_J, partial_h, name="partial model", no_initial_states = True)
 
         return partial_model
     
@@ -255,7 +256,7 @@ class MCMC_qulacs:
             cnt += 1
 
         # define new model post coarse-graining
-        partial_model = IsingEnergyFunction(partial_J, partial_h, name="partial model",no_inits = True)
+        partial_model = IsingEnergyFunction(partial_J, partial_h, name="partial model",no_initial_states = True)
 
         return partial_model
     
