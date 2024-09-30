@@ -7,7 +7,7 @@ from tqdm import tqdm
 import random
 from cgqemcmc.basic_utils import MCMCChain, MCMCState
 from cgqemcmc.energy_models import IsingEnergyFunction
-
+import warnings
 
 
 
@@ -229,12 +229,15 @@ def test_accept(
     and s_init with probability 1-A.
     """
     delta_energy = energy_sprime - energy_s  # E(s')-E(s)
-    try:
-        exp_factor = np.exp(-delta_energy / temperature)
-    except RuntimeWarning as e:
-        exp_factor = 0
-        print("Error in exponantial: delta_energy = ", delta_energy, "temperature = ", temperature, " energy_s = ", energy_s, " energy_sprime = ", energy_sprime)
-        
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", RuntimeWarning)
+        try:
+            exp_factor = np.exp(-delta_energy / temperature)
+        except RuntimeWarning as e:
+            
+            exp_factor = 0
+            print("Error in exponantial: delta_energy = ", delta_energy, "temperature = ", temperature, " energy_s = ", energy_s, " energy_sprime = ", energy_sprime)
+            
     acceptance = min(
         1, exp_factor
     )  # for both QC case as well as uniform random strategy, the transition matrix Pij is symmetric!
