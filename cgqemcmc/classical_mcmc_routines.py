@@ -229,7 +229,12 @@ def test_accept(
     and s_init with probability 1-A.
     """
     delta_energy = energy_sprime - energy_s  # E(s')-E(s)
-    exp_factor = np.exp(-delta_energy / temperature)
+    try:
+        exp_factor = np.exp(-delta_energy / temperature)
+    except:
+        exp_factor = 0
+        print("Error in exponantial: delta_energy = ", delta_energy, "temperature = ", temperature, " energy_s = ", energy_s, " energy_sprime = ", energy_sprime)
+        
     acceptance = min(
         1, exp_factor
     )  # for both QC case as well as uniform random strategy, the transition matrix Pij is symmetric!
@@ -255,7 +260,6 @@ def get_random_state(num_spins: int) -> str:
     # Convert the state from integer to a bitstring
     s_prime = f"{next_state:0{num_spins}b}"
     return s_prime
-
 
 
 
