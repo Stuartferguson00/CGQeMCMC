@@ -234,9 +234,12 @@ def test_accept(
         try:
             exp_factor = np.exp(-delta_energy / temperature)
         except RuntimeWarning as e:
+            if energy_sprime < energy_s:
+                exp_factor = 1
+            else:
+                exp_factor = 0
             
-            exp_factor = 0
-            print("Error in exponantial: delta_energy = ", delta_energy, "temperature = ", temperature, " energy_s = ", energy_s, " energy_sprime = ", energy_sprime)
+            #print("Error in exponantial: delta_energy = ", delta_energy, "temperature = ", temperature, " energy_s = ", energy_s, " energy_sprime = ", energy_sprime)
             
     acceptance = min(
         1, exp_factor
