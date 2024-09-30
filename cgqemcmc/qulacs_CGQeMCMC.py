@@ -61,7 +61,7 @@ class MCMC_qulacs:
         else:
             self.sample_sizes = [self.max_qubits,]
 
-        print("Quantum computations for this Ising model problem will be of qubit sizes: " +str(self.sample_sizes))
+        #print("Quantum computations for this Ising model problem will be of qubit sizes: " +str(self.sample_sizes))
 
 
         if self.max_qubits == self.model.num_spins or self.max_qubits is None:
