@@ -13,7 +13,7 @@ from cgqemcmc.qulacs_CGQeMCMC import MCMC_qulacs
 import joblib
 
 
-def do_quantum_MCMC(i, last_done, multiple_sample, m_q, temp, time, gamma, n_hops, model_list, n_spins, sample_frequency ):
+def do_quantum_MCMC(i, last_done, multiple_sample, m_q, temp, time, gamma, n_hops, model_list, n_spins, sample_frequency ,noise_dict):
     # function to do a single quantum MCMC
     t = tme.time()
     if last_done +i > len(model_list)-1:
@@ -32,7 +32,7 @@ def do_quantum_MCMC(i, last_done, multiple_sample, m_q, temp, time, gamma, n_hop
             CG_sample_number = 1
 
         
-        MCMC = MCMC_qulacs(m, gamma, time, temp, max_qubits = int(m_q), CG_sample_number = CG_sample_number)
+        MCMC = MCMC_qulacs(m, gamma, time, temp, max_qubits = int(m_q), CG_sample_number = CG_sample_number,noise_model_dict = noise_dict)
 
         
         output = MCMC.run(n_hops, initial_state=m.initial_state[last_done +i], sample_frequency=sample_frequency)
@@ -45,7 +45,7 @@ def do_quantum_MCMC(i, last_done, multiple_sample, m_q, temp, time, gamma, n_hop
 
 
 
-def main(n_spins, temp, reps,n_hops,multiple_sample, m_q,sample_frequency):
+def main(n_spins, temp, reps,n_hops,multiple_sample, m_q,sample_frequency,noise_dict):
     
     if m_q == n_spins:
         proposal = "q_full"
@@ -76,7 +76,11 @@ def main(n_spins, temp, reps,n_hops,multiple_sample, m_q,sample_frequency):
     #change model file names for easy file organisation
     str_nspins = str(n_spins).zfill(3)
     model_dir = model_dir + str_nspins + '.obj'
-    Q_results_dir = Q_results_dir + str_nspins + '_'+ proposal + "_" + m_q_str + '.obj'
+    
+    if noise_dict["noise_model"] == "depolarising":
+            Q_results_dir = Q_results_dir + str_nspins + '_'+ proposal + "_" + m_q_str + "_depolarising" +'.obj'
+    else:
+        Q_results_dir = Q_results_dir + str_nspins + '_'+ proposal + "_" + m_q_str + '.obj'
 
 
 
@@ -132,7 +136,7 @@ def main(n_spins, temp, reps,n_hops,multiple_sample, m_q,sample_frequency):
     
     # parallelise and time computation
     t_1  = tme.time()
-    result_list_ = joblib.Parallel(n_jobs=reps)(joblib.delayed(do_quantum_MCMC)(i,last_done,multiple_sample,m_q,temp,time,gamma,n_hops,model_list,n_spins,sample_frequency) for i in range(0,reps))
+    result_list_ = joblib.Parallel(n_jobs=reps)(joblib.delayed(do_quantum_MCMC)(i,last_done,multiple_sample,m_q,temp,time,gamma,n_hops,model_list,n_spins,sample_frequency,noise_dict) for i in range(0,reps))
     t_1 = tme.time()-t_1
     
     for r in result_list_:
@@ -164,9 +168,9 @@ if __name__ == "__main__":
             boolean_value = str(sys.argv[i]).lower() == "true"
             args.append(boolean_value)
         
-        
-
-    main(args[0],args[1],args[2], args[3], args[4], args[5], args[6])
+    #noise_dict = {"noise_model": "depolarising", "noise_prob_one_qubit": 0.01, "noise_prob_two_qubit": 0.01}
+    noise_dict = {"noise_model": None, "noise_prob_one_qubit": 0, "noise_prob_two_qubit": 0}
+    main(args[0],args[1],args[2], args[3], args[4], args[5], args[6],noise_dict)
 
 
 

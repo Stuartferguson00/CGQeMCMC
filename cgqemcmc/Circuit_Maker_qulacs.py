@@ -9,7 +9,7 @@ try:
 except:
     from qulacs import QuantumState
     print("Using CPU qulacs as qulacs install is not configured for GPU simulation ")
-    
+import qulacs
 from qulacs.gate import DenseMatrix
 from qulacs.gate import X, Y, Z  , Pauli, Identity, merge
 from qulacs import QuantumCircuit
@@ -33,7 +33,7 @@ class Circuit_Maker:
 
     """
 
-    def __init__(self, model: IsingEnergyFunction, gamma: Union[float, tuple] , time: Union[int, tuple]):
+    def __init__(self, model: IsingEnergyFunction, gamma: Union[float, tuple] , time: Union[int, tuple], noise_model_dict: Union[dict, None] = None):
 
         """
         Initialise Circuit_Maker object.
@@ -53,7 +53,16 @@ class Circuit_Maker:
 
 
         """
-
+        
+        self.noise_model_dict = noise_model_dict
+        if self.noise_model_dict is not None:
+            self.noise_model = self.noise_model_dict.get("noise_model", "depolarising")
+            self.noise_prob_one_qubit = self.noise_model_dict.get("noise_prob_one_qubit", 0)
+            self.noise_prob_two_qubit = self.noise_model_dict.get("noise_prob_two_qubit", 0)
+        else:
+            self.noise_model = None
+        if self.noise_model != "depolarising" and self.noise_model is not None:
+            raise ValueError("Only depolarising (or None) noise model is supported for now")
         self.time = time
         self.gamma = gamma
         self.model = model
@@ -170,7 +179,11 @@ class Circuit_Maker:
 
             unitary_gate=DenseMatrix(index=self.n_spins-1-j,
                             matrix = Matrix)
-            qc_h1.add_gate(unitary_gate)
+            
+            if self.noise_model == "depolarising" and self.noise_prob_one_qubit > 0:
+                qc_h1.add_noise_gate(unitary_gate, "Depolarizing", self.noise_prob_one_qubit)
+            else:
+                qc_h1.add_gate(unitary_gate)
 
         return qc_h1
 
@@ -205,7 +218,13 @@ class Circuit_Maker:
                 target_list=[self.n_spins-1-j,self.n_spins-1-k]
                 angle = theta_array[j,k]
 
-                qc_for_evol_h2.add_multi_Pauli_rotation_gate(index_list=target_list,pauli_ids=pauli_z_index,angle = angle)
+                #print(" 2 qubit depolarising isnt working I dont think")
+                if self.noise_model == "Depolarising" and self.noise_prob_two_qubit > 0:
+                    #print("This bit will not work idk what to do")
+                    gate = qulacs.gate.PauliRotation(target_list, pauli_z_index, angle)
+                    qc_for_evol_h2.add_noise_gate(gate, "Depolarizing", self.noise_prob_two_qubit)
+                else:
+                    qc_for_evol_h2.add_multi_Pauli_rotation_gate(index_list=target_list,pauli_ids=pauli_z_index,angle = angle)
                 
 
         return qc_for_evol_h2

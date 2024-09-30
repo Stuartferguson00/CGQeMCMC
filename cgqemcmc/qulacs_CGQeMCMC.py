@@ -8,7 +8,7 @@ from .basic_utils import MCMCChain, MCMCState
 from .energy_models import IsingEnergyFunction
 from .classical_mcmc_routines import get_random_state, test_accept
 
-
+import typing
 #from .Circuit_Maker_qulacs import Hamming_Circuit_Maker as Circuit_Maker
 from .Circuit_Maker_qulacs import Circuit_Maker
 
@@ -21,7 +21,7 @@ class MCMC_qulacs:
     
     """
     
-    def __init__(self, model, gamma, time, temp, max_qubits=None, CG_sample_number=1, naive=False, delta_time = 0.8):
+    def __init__(self, model, gamma, time, temp, max_qubits=None, CG_sample_number=1, naive=False, delta_time = 0.8, noise_model_dict: typing.Union[dict, None] = None):
         #havent done type hinting yet
         """
         Initializes an instance of the CGQeMCMC class.
@@ -34,8 +34,9 @@ class MCMC_qulacs:
             max_qubits (int, optional): The maximum number of qubits to use ie. the size of the group in paper. Defaults to None.
             CG_sample_number (int, optional): The number of CG samples to take ie. the number of groups to evaluate (see paper). Defaults to 1.
             naive (bool, optional): Flag indicating whether to use naive approach (see paper). Defaults to False.
+            noise_model_dict (dict, optional): A dictionary containing the noise model to be used. Defaults to None.  
         """
-        
+        self.noise_model_dict = noise_model_dict
         self.model = model
         self.n_spins = model.num_spins
         
@@ -167,7 +168,7 @@ class MCMC_qulacs:
         
         # Get s_prime
         if not self.course_graining:
-            CM = Circuit_Maker(self.model, g, t)
+            CM = Circuit_Maker(self.model, g, t,noise_model_dict = self.noise_model_dict)
             s_prime = CM.get_state_obtained_binary(current_state)
         else:
             s_prime = self.sample_transitions_CG_binary(current_state, self.max_qubits, g, t)
@@ -336,7 +337,7 @@ class MCMC_qulacs:
 
             c_btstring = ''.join(map(str, change_bitstring))
 
-            CM = Circuit_Maker(partial_model, gamma, time)
+            CM = Circuit_Maker(partial_model, gamma, time,noise_model_dict = self.noise_model_dict)
             binary = CM.get_state_obtained_binary(c_btstring)
             if i == 0:
                 # put in all the original states for unchanged spins
