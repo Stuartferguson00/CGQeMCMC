@@ -191,6 +191,13 @@ u_sampled = True
 sampling_interval_u = 10
 u_color = "orange"
 
+
+
+
+
+
+
+
 #multiple sample
 do_Q = True
 Q_sampled =   True
@@ -199,28 +206,53 @@ Q_color = "red"
 m_q = np.sqrt(n_spins) # number of groups is assumed to be sqrt(n)
 m_q_str = "000" if m_q/n_spins == 1 else f"{m_q/n_spins * 1000:03.0f}"
 
-#no coarse graining 
-do_Q_2 = False
-Q_2_sampled =   True
-sampling_interval_Q_2 = 10
-Q_2_color = "blue"
-m_q_2 = n_spins
-m_q_2_str = "000" if m_q_2/n_spins == 1 else f"{m_q_2/n_spins * 1000:03.0f}"
+
+# Normal QeMCMC
+do_Q_full = True
+Q_full_sampled = True
+sampling_interval_Q_full = 10
+Q_full_color = "blue"
+m_q_full = n_spins
+m_q_full_str = "000" if m_q_full/n_spins == 1 else f"{m_q_full/n_spins * 1000:03.0f}"
+
+# Normal QeMCMC with noise
+do_Q_full2 = True
+Q_full2_sampled = True
+sampling_interval_Q_full2 = 10
+Q_full2_color = "darkblue"
+m_q_full2 = n_spins
+m_q_full2_str = "000" if m_q_full2/n_spins == 1 else f"{m_q_full2/n_spins * 1000:03.0f}"
+m_q_full2_str = m_q_full2_str +"_dep_01_01"
+
+
 
 
 #noise
 do_Q_3 = True
 Q_3_sampled =   True
 sampling_interval_Q_3 = 10
-Q_3_color = "lightblue"
+Q_3_color = "slateblue"
 m_q_3 = np.sqrt(n_spins)
 m_q_3_str = "000" if m_q_3/n_spins == 1 else f"{m_q_3/n_spins * 1000:03.0f}"
-m_q_3_str = m_q_3_str +"_depolarising"
+m_q_3_str = m_q_3_str +"_dep_01_0"
 
+#noise
+do_Q_4 = True
+Q_4_sampled =   True
+sampling_interval_Q_4 = 10
+Q_4_color = "mediumpurple"
+m_q_4 = np.sqrt(n_spins)
+m_q_4_str = "000" if m_q_4/n_spins == 1 else f"{m_q_4/n_spins * 1000:03.0f}"
+m_q_4_str = m_q_4_str +"_dep_0_01"
 
-
-
-
+#noise
+do_Q_5 = True
+Q_5_sampled =   True
+sampling_interval_Q_5 = 10
+Q_5_color = "purple"
+m_q_5 = np.sqrt(n_spins)
+m_q_5_str = "000" if m_q_5/n_spins == 1 else f"{m_q_5/n_spins * 1000:03.0f}"
+m_q_5_str = m_q_5_str +"_dep_01_01"
 
 
 
@@ -334,16 +366,26 @@ if do_Q:
     Q_hops = np.arange(0, len(Q_hops[0]) * sampling_interval_Q, sampling_interval_Q)
     Q_hops = np.tile(Q_hops, (len(Q_hops), 1))
     Q_full_hops, Q_full_energies = plot_energies(Q_all_energies, Q_hops, ax, "q_mult_samp_"+m_q_str, Q_color)
+
+if do_Q_full:
+    Q_full_results_dir = get_results_dir(n_spins, results_dir, "q_full_" + m_q_full_str)
+    Q_full_all_energies, Q_full_all_states, Q_full_hops = unpickle(Q_full_results_dir)
+    # Q_full_all_energies, Q_full_all_states, Q_full_hops = thin_stuff([Q_full_all_energies, Q_full_all_states, Q_full_hops], thin_Q_full)
     
-if do_Q_2:
-    Q_2_results_dir = get_results_dir(n_spins, results_dir, "q_full_" + m_q_2_str)
-    Q_2_all_energies, Q_2_all_states, Q_2_hops = unpickle(Q_2_results_dir)
-    # Q_2_all_energies, Q_2_all_states, Q_2_hops = thin_stuff([Q_2_all_energies, Q_2_all_states, Q_2_hops], thin_Q_2)
+    Q_full_hops = np.arange(0, len(Q_full_hops[0]) * sampling_interval_Q_full, sampling_interval_Q_full)
+    Q_full_hops = np.tile(Q_full_hops, (len(Q_full_hops), 1))
+    Q_full_full_hops, Q_full_full_energies = plot_energies(Q_full_all_energies, Q_full_hops, ax, "q_full_" + m_q_full_str, Q_full_color)
+
+
+if do_Q_full2:
+    Q_full2_results_dir = get_results_dir(n_spins, results_dir, "q_full_" + m_q_full2_str)
+    Q_full2_all_energies, Q_full2_all_states, Q_full2_hops = unpickle(Q_full2_results_dir)
+    # Q_full2_all_energies, Q_full2_all_states, Q_full2_hops = thin_stuff([Q_full2_all_energies, Q_full2_all_states, Q_full2_hops], thin_Q_full2)
     
-    Q_2_hops = np.arange(0, len(Q_2_hops[0]) * sampling_interval_Q_2, sampling_interval_Q_2)
-    Q_2_hops = np.tile(Q_2_hops, (len(Q_2_hops), 1))
-    Q_2_full_hops, Q_2_full_energies = plot_energies(Q_2_all_energies, Q_2_hops, ax, "q_full_" + m_q_2_str, Q_2_color)
-    
+    Q_full2_hops = np.arange(0, len(Q_full2_hops[0]) * sampling_interval_Q_full2, sampling_interval_Q_full2)
+    Q_full2_hops = np.tile(Q_full2_hops, (len(Q_full2_hops), 1))
+    Q_full2_full_hops, Q_full2_full_energies = plot_energies(Q_full2_all_energies, Q_full2_hops, ax, "q_full_" + m_q_full2_str, Q_full2_color)
+
 if do_Q_3:
     Q_3_results_dir = get_results_dir(n_spins, results_dir, "q_mult_samp_" + m_q_3_str)
     Q_3_all_energies, Q_3_all_states, Q_3_hops = unpickle(Q_3_results_dir)
@@ -353,8 +395,23 @@ if do_Q_3:
     Q_3_hops = np.tile(Q_3_hops, (len(Q_3_hops), 1))
     Q_3_full_hops, Q_3_full_energies = plot_energies(Q_3_all_energies, Q_3_hops, ax, "q_mult_samp_" + m_q_3_str, Q_3_color)
 
+if do_Q_4:
+    Q_4_results_dir = get_results_dir(n_spins, results_dir, "q_mult_samp_" + m_q_4_str)
+    Q_4_all_energies, Q_4_all_states, Q_4_hops = unpickle(Q_4_results_dir)
+    # Q_4_all_energies, Q_4_all_states, Q_4_hops = thin_stuff([Q_4_all_energies, Q_4_all_states, Q_4_hops], thin_Q_4)
+    
+    Q_4_hops = np.arange(0, len(Q_4_hops[0]) * sampling_interval_Q_4, sampling_interval_Q_4)
+    Q_4_hops = np.tile(Q_4_hops, (len(Q_4_hops), 1))
+    Q_4_full_hops, Q_4_full_energies = plot_energies(Q_4_all_energies, Q_4_hops, ax, "q_mult_samp_" + m_q_4_str, Q_4_color)
 
-
+if do_Q_5:
+    Q_5_results_dir = get_results_dir(n_spins, results_dir, "q_mult_samp_" + m_q_5_str)
+    Q_5_all_energies, Q_5_all_states, Q_5_hops = unpickle(Q_5_results_dir)
+    # Q_5_all_energies, Q_5_all_states, Q_5_hops = thin_stuff([Q_5_all_energies, Q_5_all_states, Q_5_hops], thin_Q_5)
+    
+    Q_5_hops = np.arange(0, len(Q_5_hops[0]) * sampling_interval_Q_5, sampling_interval_Q_5)
+    Q_5_hops = np.tile(Q_5_hops, (len(Q_5_hops), 1))
+    Q_5_full_hops, Q_5_full_energies = plot_energies(Q_5_all_energies, Q_5_hops, ax, "q_mult_samp_" + m_q_5_str, Q_5_color)
 
 
 

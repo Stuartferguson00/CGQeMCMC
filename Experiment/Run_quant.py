@@ -77,8 +77,12 @@ def main(n_spins, temp, reps,n_hops,multiple_sample, m_q,sample_frequency,noise_
     str_nspins = str(n_spins).zfill(3)
     model_dir = model_dir + str_nspins + '.obj'
     
+    
     if noise_dict["noise_model"] == "depolarising":
-            Q_results_dir = Q_results_dir + str_nspins + '_'+ proposal + "_" + m_q_str + "_depolarising" +'.obj'
+        if noise_dict["Noise_label"] != None:
+            Q_results_dir = Q_results_dir + str_nspins + '_'+ proposal + "_" + m_q_str + "_" +noise_dict["Noise_label"] +'.obj'
+        else:
+            Q_results_dir = Q_results_dir + str_nspins + '_'+ proposal + "_" + m_q_str + '_dep.obj'
     else:
         Q_results_dir = Q_results_dir + str_nspins + '_'+ proposal + "_" + m_q_str + '.obj'
 
@@ -168,8 +172,10 @@ if __name__ == "__main__":
             boolean_value = str(sys.argv[i]).lower() == "true"
             args.append(boolean_value)
         
-    #noise_dict = {"noise_model": "depolarising", "noise_prob_one_qubit": 0.01, "noise_prob_two_qubit": 0.01}
-    noise_dict = {"noise_model": None, "noise_prob_one_qubit": 0, "noise_prob_two_qubit": 0}
+    noise_dict = {"noise_model": "depolarising", "noise_prob_one_qubit": 0.01, "noise_prob_two_qubit": 0.01, "Noise_label": "dep_01_01"}
+    #noise_dict = {"noise_model": "depolarising", "noise_prob_one_qubit": 0, "noise_prob_two_qubit": 0.01, "Noise_label": "dep_0_01"}
+    #noise_dict = {"noise_model": "depolarising", "noise_prob_one_qubit": 0.01, "noise_prob_two_qubit": 0, "Noise_label": "dep_01_0"}
+    #noise_dict = {"noise_model": None, "noise_prob_one_qubit": 0, "noise_prob_two_qubit": 0, "Noise_label": None}
     main(args[0],args[1],args[2], args[3], args[4], args[5], args[6],noise_dict)
 
 

@@ -60,7 +60,7 @@ class MCMC_qulacs:
             self.sample_sizes = np.ones(self.CG_sample_number, dtype=int) * self.max_qubits
             self.sample_sizes[-1] = self.n_spins - np.sum(self.sample_sizes[:-1])
         else:
-            self.sample_sizes = [self.max_qubits,]
+            self.sample_sizes = [self.max_qubits,]#np.ones(self.CG_sample_number) * self.max_qubits
 
         #print("Quantum computations for this Ising model problem will be of qubit sizes: " +str(self.sample_sizes))
 
@@ -132,7 +132,7 @@ class MCMC_qulacs:
 
             # if time to sample, add state to chain
             if i//sample_frequency == i/sample_frequency and i != 0:
-                mcmc_chain.add_state(MCMCState(current_state.bitstring, accepted, energy_s, pos = i))
+                mcmc_chain.add_state(MCMCState(current_state.bitstring, True, energy_s, pos = i))
             
             
         return mcmc_chain

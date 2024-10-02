@@ -191,7 +191,9 @@ class MCMC_Classical:
                 
             # if time to sample, add state to chain
             if i//sample_frequency == i/sample_frequency and i != 0 :
-                mcmc_chain.add_state(MCMCState(current_state.bitstring, accepted, energy_s, pos = i))
+                mcmc_chain.add_state(MCMCState(current_state.bitstring, True, energy_s, pos = i))
+                
+            
 
         return mcmc_chain
 
