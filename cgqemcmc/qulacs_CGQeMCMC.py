@@ -8,7 +8,7 @@ from .basic_utils import MCMCChain, MCMCState
 from .energy_models import IsingEnergyFunction
 from .classical_mcmc_routines import get_random_state, test_accept
 
-
+import typing
 #from .Circuit_Maker_qulacs import Hamming_Circuit_Maker as Circuit_Maker
 from .Circuit_Maker_qulacs import Circuit_Maker
 
@@ -21,7 +21,7 @@ class MCMC_qulacs:
     
     """
     
-    def __init__(self, model, gamma, time, temp, max_qubits=None, CG_sample_number=1, naive=False, delta_time = 0.8):
+    def __init__(self, model, gamma, time, temp, sample_sizes = None, naive=False, delta_time = 0.8, noise_model_dict: typing.Union[dict, None] = None):
         #havent done type hinting yet
         """
         Initializes an instance of the CGQeMCMC class.
@@ -34,8 +34,9 @@ class MCMC_qulacs:
             max_qubits (int, optional): The maximum number of qubits to use ie. the size of the group in paper. Defaults to None.
             CG_sample_number (int, optional): The number of CG samples to take ie. the number of groups to evaluate (see paper). Defaults to 1.
             naive (bool, optional): Flag indicating whether to use naive approach (see paper). Defaults to False.
+            noise_model_dict (dict, optional): A dictionary containing the noise model to be used. Defaults to None.  
         """
-        
+        self.noise_model_dict = noise_model_dict
         self.model = model
         self.n_spins = model.num_spins
         
@@ -46,25 +47,17 @@ class MCMC_qulacs:
         self.temp = temp
         self.beta = 1 / self.temp
         
-        self.max_qubits = max_qubits
-        self.CG_sample_number = CG_sample_number
+        #self.max_qubits = max_qubits
+        #self.CG_sample_number = CG_sample_number
         self.naive = naive
+        
+        self.sample_sizes = sample_sizes
+        sum_sample_sizes = sum(self.sample_sizes)
+        if sum_sample_sizes > self.n_spins:
+            print("Shouldnt evaluate more spins than there are in the lattice")
+        
 
-        # Sort out how many quantum computations to do and what sizes to do
-        # Future versions should probably just take as input the sample_sizes list
-        avg_sample_size = self.n_spins / self.CG_sample_number
-        if avg_sample_size == self.max_qubits:
-            self.sample_sizes = np.ones(self.CG_sample_number) * self.max_qubits
-        elif avg_sample_size <= self.max_qubits:
-            self.sample_sizes = np.ones(self.CG_sample_number, dtype=int) * self.max_qubits
-            self.sample_sizes[-1] = self.n_spins - np.sum(self.sample_sizes[:-1])
-        else:
-            self.sample_sizes = [self.max_qubits,]
-
-        #print("Quantum computations for this Ising model problem will be of qubit sizes: " +str(self.sample_sizes))
-
-
-        if self.max_qubits == self.model.num_spins or self.max_qubits is None:
+        if self.sample_sizes  is None:
             self.course_graining = False
         else:
             self.course_graining = True
@@ -131,7 +124,7 @@ class MCMC_qulacs:
 
             # if time to sample, add state to chain
             if i//sample_frequency == i/sample_frequency and i != 0:
-                mcmc_chain.add_state(MCMCState(current_state.bitstring, accepted, energy_s, pos = i))
+                mcmc_chain.add_state(MCMCState(current_state.bitstring, True, energy_s, pos = i))
             
             
         return mcmc_chain
@@ -167,10 +160,10 @@ class MCMC_qulacs:
         
         # Get s_prime
         if not self.course_graining:
-            CM = Circuit_Maker(self.model, g, t)
+            CM = Circuit_Maker(self.model, g, t,noise_model_dict = self.noise_model_dict)
             s_prime = CM.get_state_obtained_binary(current_state)
         else:
-            s_prime = self.sample_transitions_CG_binary(current_state, self.max_qubits, g, t)
+            s_prime = self.sample_transitions_CG_binary(current_state, g, t)
 
         return s_prime
 
@@ -262,7 +255,7 @@ class MCMC_qulacs:
     
     
 
-    def sample_transitions_CG_binary(self, s, n, gamma, time):
+    def sample_transitions_CG_binary(self, s, gamma, time):
         """
         Perform binary transitions sampling using the CGQeMCMC algorithm. This is used in "brute force" sampling of Q or in actual CGQeMCMC.
 
@@ -279,65 +272,57 @@ class MCMC_qulacs:
             None
 
         """
+        
+        
+    
+
         # same as sample_transitions_CG_binary_ but can use multiple sections of the lattice
         # find what state s' you obtain given s
         # is a list of all s and all s' (given the spins that aren't specified)
         current_state = s
-        n_change_spins = n
 
         # decide which indexes to use
         full_index = np.arange(0, self.n_spins)
 
         # current bitstring as an array
-        BIT_STRING_ARR = np.fromstring(current_state, 'u1') - ord('0')
-
+        #BIT_STRING_ARR = np.fromstring(current_state, 'u1') - ord('0')
+        BIT_STRING_ARR = np.array([int(i) for i in current_state])
+        
         # The choice of spins that will be changed (index
-        orig_choices = self.find_subset(self.n_spins, n_change_spins)
+        orig_choices = self.find_subset(self.n_spins, self.sample_sizes[0])
         choices = np.sort(orig_choices)
 
         # DO CG_sample_number number of quantum evaluations of max_qubits number of spins
-        for i in range(0, self.CG_sample_number):
+        for i in range(0, len(self.sample_sizes)):
 
             # find the next selection of choices to evaluate
-
-            # if normal number of choices
-            if self.sample_sizes[i] == self.max_qubits:
+            if i > 0:
 
                 choices_i = []
-                for i_c in choices:
-                    if i == 0:
-                        nxt = i_c
-                    else:
-                        nxt = i_c + self.max_qubits
-                    if nxt >= self.n_spins:
-                        nxt = nxt - self.n_spins
-                    choices_i.append(nxt)
-
-            elif i == self.CG_sample_number - 1:
-                choices_i = []
-                for l in range(1, self.sample_sizes[-1] + 1):
-                    nxt = orig_choices[0] - l
+                for l in range(1, self.sample_sizes[i] + 1):
+                    nxt = (choices[-1] + l)%self.n_spins
                     if nxt < 0:
                         nxt = nxt + self.n_spins
                     choices_i.append(nxt)
-            else:
-                print("a weird error has occured in sample_transitions_CG_binary")
 
-            choices = np.sort(choices_i)
+                choices = np.sort(choices_i)
+
+
 
             # current state of bitsrings to be changed
             change_bitstring = BIT_STRING_ARR[choices]
+            
             # mask = np.isin(full_index, choices, invert=True)
             mask = np.delete(np.copy(full_index), choices)  # much quicker than isin, and full index is only n long so space wise it shouldnt be an issue
             # spins that wont be changes
             non_choices = full_index[mask]
 
             partial_model = self.define_accurate_partial_model(choices, full_index, current_state)
-
             c_btstring = ''.join(map(str, change_bitstring))
-
-            CM = Circuit_Maker(partial_model, gamma, time)
+            CM = Circuit_Maker(partial_model, gamma, time,noise_model_dict = self.noise_model_dict)
             binary = CM.get_state_obtained_binary(c_btstring)
+            
+            
             if i == 0:
                 # put in all the original states for unchanged spins
                 S_final = np.zeros(self.n_spins, dtype=int)
