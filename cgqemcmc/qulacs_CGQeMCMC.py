@@ -59,6 +59,8 @@ class MCMC_qulacs:
 
         if self.sample_sizes  is None:
             self.course_graining = False
+        elif len(self.sample_sizes) == 1 and self.sample_sizes[0] == self.n_spins:
+            self.course_graining = False
         else:
             self.course_graining = True
 
@@ -197,7 +199,7 @@ class MCMC_qulacs:
         partial_h = np.delete(self.model.h, non_choices, axis=0)
 
         # define new model post coarse-graining
-        partial_model = IsingEnergyFunction(partial_J, partial_h, name="partial model", no_initial_states = True)
+        partial_model = IsingEnergyFunction(partial_J, partial_h, name="partial model", no_initial_states = True, cost_function_signs=self.model.cost_function_signs)
 
         return partial_model
     
@@ -249,7 +251,7 @@ class MCMC_qulacs:
             cnt += 1
 
         # define new model post coarse-graining
-        partial_model = IsingEnergyFunction(partial_J, partial_h, name="partial model",no_initial_states = True)
+        partial_model = IsingEnergyFunction(partial_J, partial_h, name="partial model",no_initial_states = True, cost_function_signs=self.model.cost_function_signs)
 
         return partial_model
     

@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='cgqemcmc',
-    version='0.3.1',  
+    version='0.3.2',  
     packages=['cgqemcmc'],  
     include_package_data=True,
     #install_requires=['numpy>=1.14.5'],# Ignores install rezquirements for now
