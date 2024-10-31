@@ -145,8 +145,12 @@ class IsingEnergyFunction:
         
         #THIS ONLY WORKS IF THE INPUT IS NOT UPPER DIAGONAL.
         # self.cost_function_signs allows for cost function to be flipped wrt to the standard Ising model
-        energy = self.cost_function_signs[0]* 0.5 * np.dot(state.transpose(), self.J.dot(state)) + self.cost_function_signs[1]* np.dot(self.h.transpose(), state)
-                
+        try:
+            energy = self.cost_function_signs[0]* 0.5 * np.dot(state.transpose(), self.J.dot(state)) + self.cost_function_signs[1]* np.dot(self.h.transpose(), state)
+        except Exception as e:
+            print(f"Error calculating energy for state {state}: {e}")
+            energy = 10000
+        
 
 
         return energy
