@@ -1,0 +1,4 @@
+.venv/
+.vs/
+.conda/
+.vscode/

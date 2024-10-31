@@ -8,7 +8,7 @@ from .basic_utils import plot_bargraph_desc_order
 from typing import Union
 from tqdm import tqdm
 import itertools
-
+import typing
 ###########################################################################################
 ## ENERGY MODEL ##
 ###########################################################################################
@@ -176,7 +176,7 @@ class IsingEnergyFunction:
         return all_energies
             
             
-    def get_lowest_energies(self,num_states:int) -> tuple[np.ndarray, np.ndarray]:
+    def get_lowest_energies(self,num_states:int) -> typing.Tuple[np.ndarray, np.ndarray]:
         """
         Retrieve the lowest energy states and their degeneracies.
         This method computes all possible energies and then finds the specified number
