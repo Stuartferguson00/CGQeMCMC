@@ -52,17 +52,24 @@ class MCMC_qulacs:
         self.naive = naive
         
         self.sample_sizes = sample_sizes
-        sum_sample_sizes = sum(self.sample_sizes)
-        if sum_sample_sizes > self.n_spins:
-            print("Shouldnt evaluate more spins than there are in the lattice")
+        
         
 
         if self.sample_sizes  is None:
             self.course_graining = False
         elif len(self.sample_sizes) == 1 and self.sample_sizes[0] == self.n_spins:
+            print("yep")
             self.course_graining = False
+            
+            sum_sample_sizes = sum(self.sample_sizes)
+            if sum_sample_sizes > self.n_spins:
+                print("Shouldnt evaluate more spins than there are in the lattice")
         else:
             self.course_graining = True
+            
+            sum_sample_sizes = sum(self.sample_sizes)
+            if sum_sample_sizes > self.n_spins:
+                print("Shouldnt evaluate more spins than there are in the lattice")
 
 
     def run(self,
