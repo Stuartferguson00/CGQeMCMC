@@ -13,7 +13,7 @@ from cgqemcmc.qulacs_CGQeMCMC import MCMC_qulacs
 import joblib
 
 
-def do_quantum_MCMC(i, last_done, multiple_sample, m_q, temp, time, gamma, n_hops, model_list, n_spins, sample_frequency ,noise_dict):
+def do_quantum_MCMC(i, last_done, sample_sizes, temp, time, gamma, n_hops, model_list, n_spins, sample_frequency ,noise_dict):
     # function to do a single quantum MCMC
     t = tme.time()
     if last_done +i > len(model_list)-1:
@@ -22,17 +22,9 @@ def do_quantum_MCMC(i, last_done, multiple_sample, m_q, temp, time, gamma, n_hop
     else:
         m = model_list[last_done+i]
 
-        if multiple_sample:
-            if n_spins//m_q < n_spins/m_q:
-                CG_sample_number = int(n_spins//m_q+1)
-            else:
-                CG_sample_number = int(n_spins//m_q)
-            
-        else:
-            CG_sample_number = 1
 
         
-        MCMC = MCMC_qulacs(m, gamma, time, temp, max_qubits = int(m_q), CG_sample_number = CG_sample_number,noise_model_dict = noise_dict)
+        MCMC = MCMC_qulacs(m, gamma, time, temp, sample_sizes=sample_sizes ,noise_model_dict = noise_dict)
 
         
         output = MCMC.run(n_hops, initial_state=m.initial_state[last_done +i], sample_frequency=sample_frequency)
@@ -45,14 +37,16 @@ def do_quantum_MCMC(i, last_done, multiple_sample, m_q, temp, time, gamma, n_hop
 
 
 
-def main(n_spins, temp, reps,n_hops,multiple_sample, m_q,sample_frequency,noise_dict):
+def main(n_spins, temp, reps,n_hops,sample_sizes,sample_frequency,noise_dict):
     
-    if m_q == n_spins:
-        proposal = "q_full"
-    elif multiple_sample:
-        proposal = "q_mult_samp"
+    if len(sample_sizes) == 1:
+        if sample_sizes[0] == n_spins:
+            proposal = "q_full"
+        else:
+            proposal = "q_single_samp"
     else:
-        proposal = "q_single_samp"
+        proposal = "q_mult_samp"
+    
     
     
     # get temperature string
@@ -71,7 +65,7 @@ def main(n_spins, temp, reps,n_hops,multiple_sample, m_q,sample_frequency,noise_
     Q_results_dir = home+'/results/'+t_str+"/"
 
 
-    m_q_str = "000" if m_q/n_spins == 1 else f"{m_q/n_spins * 1000:03.0f}"
+    m_q_str = "000" if sample_sizes[0]/n_spins == 1 else f"{sample_sizes[0]/n_spins * 1000:03.0f}"
 
     #change model file names for easy file organisation
     str_nspins = str(n_spins).zfill(3)
@@ -140,7 +134,7 @@ def main(n_spins, temp, reps,n_hops,multiple_sample, m_q,sample_frequency,noise_
     
     # parallelise and time computation
     t_1  = tme.time()
-    result_list_ = joblib.Parallel(n_jobs=reps)(joblib.delayed(do_quantum_MCMC)(i,last_done,multiple_sample,m_q,temp,time,gamma,n_hops,model_list,n_spins,sample_frequency,noise_dict) for i in range(0,reps))
+    result_list_ = joblib.Parallel(n_jobs=reps)(joblib.delayed(do_quantum_MCMC)(i,last_done,sample_sizes,temp,time,gamma,n_hops,model_list,n_spins,sample_frequency,noise_dict) for i in range(0,reps))
     t_1 = tme.time()-t_1
     
     for r in result_list_:
@@ -172,11 +166,21 @@ if __name__ == "__main__":
             boolean_value = str(sys.argv[i]).lower() == "true"
             args.append(boolean_value)
         
+        
+    if args[4]:
+        sample_sizes = [args[5],]*args[5]
+    else:  
+        sample_sizes = [args[5],]
+
+    print("sample_sizes"+str(sample_sizes))
     noise_dict = {"noise_model": "depolarising", "noise_prob_one_qubit": 0.01, "noise_prob_two_qubit": 0.01, "Noise_label": "dep_01_01"}
-    #noise_dict = {"noise_model": "depolarising", "noise_prob_one_qubit": 0, "noise_prob_two_qubit": 0.01, "Noise_label": "dep_0_01"}
-    #noise_dict = {"noise_model": "depolarising", "noise_prob_one_qubit": 0.01, "noise_prob_two_qubit": 0, "Noise_label": "dep_01_0"}
-    #noise_dict = {"noise_model": None, "noise_prob_one_qubit": 0, "noise_prob_two_qubit": 0, "Noise_label": None}
-    main(args[0],args[1],args[2], args[3], args[4], args[5], args[6],noise_dict)
+    #main(args[0],args[1],args[2], args[3], args[4], args[5], args[6],noise_dict)
+    noise_dict = {"noise_model": "depolarising", "noise_prob_one_qubit": 0, "noise_prob_two_qubit": 0.01, "Noise_label": "dep_0_01"}
+    #main(args[0],args[1],args[2], args[3], args[4], args[5], args[6],noise_dict)
+    noise_dict = {"noise_model": "depolarising", "noise_prob_one_qubit": 0.01, "noise_prob_two_qubit": 0, "Noise_label": "dep_01_0"}
+    #main(args[0],args[1],args[2], args[3], args[4], args[5], args[6],noise_dict)
+    noise_dict = {"noise_model": None, "noise_prob_one_qubit": 0, "noise_prob_two_qubit": 0, "Noise_label": None}
+    main(args[0],args[1],args[2], args[3], sample_sizes, args[6], noise_dict)
 
 
 

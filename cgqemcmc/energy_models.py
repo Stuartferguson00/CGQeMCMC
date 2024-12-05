@@ -149,6 +149,7 @@ class IsingEnergyFunction:
             energy = self.cost_function_signs[0]* 0.5 * np.dot(state.transpose(), self.J.dot(state)) + self.cost_function_signs[1]* np.dot(self.h.transpose(), state)
         except Exception as e:
             print(f"Error calculating energy for state {state}: {e}")
+            print("This error is generally caused when qulacs outputs a bitstring of 1 followed by n 0's for the state for some reason")
             energy = 10000
         
 

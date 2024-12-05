@@ -172,8 +172,8 @@ def get_results_dir(n_spins,results_dir, token):
 
 
 
-n_spins = 9 # size of system
-temp = float(0.1) # temperature of system to analyse
+n_spins = 16 # size of system
+temp = float(1) # temperature of system to analyse
 
 
 plot_first = True #whether to plot energy graph or not
@@ -201,24 +201,24 @@ u_color = "orange"
 #multiple sample
 do_Q = True
 Q_sampled =   True
-sampling_interval_Q = 10
+sampling_interval_Q = 1
 Q_color = "red"
 m_q = np.sqrt(n_spins) # number of groups is assumed to be sqrt(n)
 m_q_str = "000" if m_q/n_spins == 1 else f"{m_q/n_spins * 1000:03.0f}"
 
 
 # Normal QeMCMC
-do_Q_full = True
+do_Q_full = False
 Q_full_sampled = True
-sampling_interval_Q_full = 10
+sampling_interval_Q_full = 1
 Q_full_color = "blue"
 m_q_full = n_spins
 m_q_full_str = "000" if m_q_full/n_spins == 1 else f"{m_q_full/n_spins * 1000:03.0f}"
 
 # Normal QeMCMC with noise
-do_Q_full2 = True
+do_Q_full2 = False
 Q_full2_sampled = True
-sampling_interval_Q_full2 = 10
+sampling_interval_Q_full2 = 1
 Q_full2_color = "darkblue"
 m_q_full2 = n_spins
 m_q_full2_str = "000" if m_q_full2/n_spins == 1 else f"{m_q_full2/n_spins * 1000:03.0f}"
@@ -230,7 +230,7 @@ m_q_full2_str = m_q_full2_str +"_dep_01_01"
 #noise
 do_Q_3 = True
 Q_3_sampled =   True
-sampling_interval_Q_3 = 10
+sampling_interval_Q_3 = 1
 Q_3_color = "slateblue"
 m_q_3 = np.sqrt(n_spins)
 m_q_3_str = "000" if m_q_3/n_spins == 1 else f"{m_q_3/n_spins * 1000:03.0f}"
@@ -239,7 +239,7 @@ m_q_3_str = m_q_3_str +"_dep_01_0"
 #noise
 do_Q_4 = True
 Q_4_sampled =   True
-sampling_interval_Q_4 = 10
+sampling_interval_Q_4 = 1
 Q_4_color = "mediumpurple"
 m_q_4 = np.sqrt(n_spins)
 m_q_4_str = "000" if m_q_4/n_spins == 1 else f"{m_q_4/n_spins * 1000:03.0f}"
@@ -248,7 +248,7 @@ m_q_4_str = m_q_4_str +"_dep_0_01"
 #noise
 do_Q_5 = True
 Q_5_sampled =   True
-sampling_interval_Q_5 = 10
+sampling_interval_Q_5 = 1
 Q_5_color = "purple"
 m_q_5 = np.sqrt(n_spins)
 m_q_5_str = "000" if m_q_5/n_spins == 1 else f"{m_q_5/n_spins * 1000:03.0f}"

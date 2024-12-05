@@ -18,7 +18,7 @@ from cgqemcmc.Model_Maker import Model_Maker
 # Once created, Models are pickled so they can be easily accessed later.
 # 
 
-n_spins = 42
+n_spins = 16
 
 
 reps = 1
