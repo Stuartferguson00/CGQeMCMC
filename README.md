@@ -16,15 +16,13 @@ This is the code that was used for the numerical results in the paper: [Quantum-
 
 It builds upon the numerics in Layden's work on the [Quantum enhanced Markov Chain Monte Carlo (QeMCMC)](https://www.nature.com/articles/s41586-023-06095-4), with the main contribution focussed on applying a "coarse graining" to the quantum proposal in order to analyse the possibility of some dampened quantum speedup remaining while the number of required qubits is lowered. 
 
+Please see also https://github.com/pafloxy/quMCMC, which was used as a starting point for this code.
 
 ## Authors and contact
 For questions and suggestions, please contact Stuart Ferguson: S.A.Ferguson-3@sms.ed.ac.uk
 
 This project was created by:
 * Stuart Ferguson
-
-
-## Citing this code
 
 
 ## License
@@ -34,7 +32,7 @@ Distributed under the MIT License. See LICENSE.txt for more information.
 
 ## Acknowledgements
 
-* https://github.com/pafloxy/quMCMC, an open-source code which was used as a building block in this code.
+* https://github.com/pafloxy/quMCMC, an open-source code which was used as a starting point for this code.
 * [QeMCMC by David Layden et al.](https://www.nature.com/articles/s41586-023-06095-4)
 * [Quantum-enhanced Markov Chain Monte Carlo for systems larger than your Quantum Computer by S. Ferguson and P. Wallden](https://arxiv.org/abs/2405.04247)
 * [Qulacs Simulator](https://quantum-journal.org/papers/q-2021-10-06-559/)
